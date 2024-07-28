@@ -1,0 +1,27 @@
+{
+  "ignores": [
+    "husky",
+    "lint-staged",
+    "prettier",
+    "eslint",
+    "eslint-config-prettier",
+    "eslint-config-react-app",
+    "eslint-plugin-better-styled-components",
+    "eslint-plugin-import",
+    "eslint-plugin-jsx-a11y",
+    "eslint-plugin-path",
+    "eslint-plugin-prettier",
+    "eslint-plugin-react",
+    "eslint-plugin-react-hooks",
+    "eslint-plugin-storybook",
+    "eslint-plugin-styled-components-a11y",
+    "eslint-webpack-plugin",
+    "husky",
+    "storybook",
+    "vite",
+    "vite-plugin-react",
+    "vite-plugin-svgr",
+    "vite-tsconfig-paths",
+    "web-vitals"
+  ]
+}
