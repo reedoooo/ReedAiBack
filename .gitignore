@@ -1,0 +1,21 @@
+.env
+package-lock.json
+/coverage
+
+# Ignore the build directory
+/build
+
+# Ignore the dist directory
+/dist
+/ignore
+
+# Ignore the node_modules directory
+/node_modules
+/.github/workflows
+.github/workflows
+.github
+.github/workflow
+/src/config/logs
+src/config/logs
+/cover-letter-generator
+cover-letter-generator
