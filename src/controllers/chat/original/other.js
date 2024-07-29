@@ -651,6 +651,266 @@ const chatStream = async (req, res) => {
 module.exports = {
   chatStream,
 };
+// const buildPromptFromTemplate = async (previousMessages, prompt) => {
+//   try {
+//     const chatPrompt = ChatPromptTemplate.fromPromptMessages([
+//       HumanMessagePromptTemplate.fromTemplate(
+//         'Please respond to the following prompt using JSON formatting: {prompt}\n' +
+//           'Remember to use appropriate json elements to structure your response.\n' +
+//           'Previous conversation context: {previousMessages}'
+//       ),
+//     ]);
+//     const formattedPrompt = await chatPrompt.formatMessages({
+//       prompt: prompt,
+//       previousMessages: previousMessages,
+//     });
+//     return formattedPrompt;
+//   } catch (error) {
+//     throw new Error(`Error building prompt from template: ${error.message}`);
+//   }
+// };
+// class StreamResponseHandler {
+//   constructor() {
+//     this.fullResponse = '';
+//     this.currentSectionIndex = 0;
+//     this.currentSectionType = '';
+//     this.currentSectionContent = '';
+//     this.currentSection = `{}`;
+//     this.sections = [];
+//     this.batchedChunks = [];
+//     this.concatenatedBatchChunks = '';
+//     this.isInSection = false;
+//     this.jsonResponse = null;
+//     this.formattedContent = '';
+//     this.concatenatedChunksToSection = `
+//       {
+//        'type': 'h1',
+//        'content': '',
+//         'index': 0
+//       }
+//     `;
+//     this.parsedChunks = [];
+//   }
+//   // --- handlers ---
+//   // extractContent(chunk) {
+//   //   return chunk.choices[0]?.delta?.content || '';
+//   // }
+//   handleChunk(chunk) {
+//     const content = extractContent(chunk);
+
+//     try {
+//       logger.debug(`Received chunk: ${JSON.stringify(chunk, null, 2)}`, chunk);
+//       logger.debug(`Received content: ${JSON.stringify(content)}`, content);
+
+//       // --- ---
+//       this.fullResponse += content;
+
+//       // Parse the chunk content
+//       const parsedChunkContent = parseContent(content);
+//       logger.debug(`Parsed chunk content: ${JSON.stringify(parsedChunkContent)}`, parsedChunkContent);
+//       this.parsedChunks.push(parsedChunkContent);
+
+//       // Check for section start
+//       if (content.includes('ST-')) {
+//         this.isInSection = true;
+//         this.currentSectionContent = '';
+//         this.concatenatedChunksToSection = '';
+//       }
+
+//       // Append content if we are within a section
+//       if (this.isInSection) {
+//         this.currentSectionContent += content;
+//       }
+
+//       // Check for section end
+//       if (content.includes('-EN')) {
+//         this.isInSection = false;
+//         logger.info('Section content:', this.currentSectionContent);
+//         this.tryParseSections(this.currentSectionContent);
+//         this.currentSectionContent = '';
+//       }
+//       this.tryParseJsonResponse();
+//       this.formattedContent = parseContent(this.fullResponse);
+
+//       return content;
+//     } catch (error) {
+//       console.error('Error handling chunk:', error);
+//       throw error;
+//     }
+//   }
+//   handleBatchChunk(chunk) {
+//     const batchSize = 10; // Adjust the batch size as needed
+
+//     try {
+//       // const content = this.extractContent(chunk);
+//       this.batchedChunks.push(chunk);
+//       const batchContentString = processChunkBatch(batchedChunks);
+//       if (batchedChunks.length >= batchSize) {
+//         batchedChunks.length = 0;
+//         this.concatenatedBatchChunks = batchContentString;
+//         return batchContentString;
+//       }
+//       // const batchContent = this.batchedChunks.join('');
+//       // this.batchedChunks = [];
+//       return batchContent;
+//     } catch (error) {
+//       console.error('Error handling batch chunk:', error);
+//       throw error;
+//     }
+//   }
+//   // --- tryers ---
+//   tryParseJsonResponse() {
+//     try {
+// const jsonObject = JSON.parse(this.fullResponse);
+// // Parse each section in the JSON response
+// this.jsonResponse = jsonObject.map(section => parseContent(JSON.stringify(section)));
+//     } catch (error) {
+//       // If parsing fails, it's likely not complete JSON yet
+//       logger.debug('Full response is not valid JSON yet');
+//     }
+//   }
+//   tryParseSections(sectionContent) {
+//     try {
+//       const sectionData = JSON.parse(sectionContent);
+//       this.sections.push(parseContent(JSON.stringify(sectionData)));
+//     } catch (error) {
+//       console.error('Error parsing section:', error);
+//       // If JSON parsing fails, store the raw content
+//       this.sections.push({ rawContent: parseContent(sectionContent) });
+//     }
+//   }
+//   tryParseJSON() {
+//     try {
+//       this.jsonResponse = JSON.parse(this.fullResponse);
+//     } catch (error) {
+//       // If parsing fails, it means the JSON is incomplete or invalid
+//     }
+//   }
+//   // --- getters ---
+//   getFormattedResponse() {
+//     return this.formattedContent;
+//   }
+//   getFullResponse() {
+//     return this.fullResponse;
+//   }
+//   getSections() {
+//     return this.sections;
+//   }
+//   getParsedChunks() {
+//     return this.parsedChunks;
+//   }
+//   // --- splitters ---
+//   splitResponse(option) {
+//     switch (option) {
+//       case 'byParagraph':
+//         return this.splitByParagraph(this.fullResponse);
+//       case 'bySentence':
+//         return this.splitBySentence(this.fullResponse);
+//       case 'byHTML':
+//         return this.splitByHTML(this.fullResponse);
+//       case 'bySection':
+//         return this.splitBySection(this.fullResponse);
+//       case 'byType':
+//         return this.splitByType(this.fullResponse);
+//       default:
+//         return [this.fullResponse];
+//     }
+//   }
+//   splitByHTML(content) {
+//     // Regular expression to match HTML tags
+//     const regex = /<[^>]+>/g;
+//     const matches = content.match(regex);
+
+//     // If there are no matches, return the original content
+//     if (!matches) {
+//       return [content];
+//     }
+
+//     const sections = [];
+//     let currentSection = '';
+
+//     // Iterate through the matches and add sections to the sections array
+//     matches.forEach(match => {
+//       if (match.startsWith('<') && match.endsWith('>')) {
+//         // If the match is an HTML tag, check if we're already in a section
+//         if (currentSection.length > 0) {
+//           sections.push(currentSection);
+//           currentSection = '';
+//         }
+//       } else {
+//         // If the match is not an HTML tag, append it to the current section
+//         currentSection += match;
+//       }
+//     });
+
+//     // Add the last section if it exists
+//     if (currentSection.length > 0) {
+//       sections.push(currentSection);
+//     }
+
+//     return sections;
+//   }
+//   splitBySection(content) {
+//     // Split content into sections based on section markers
+//     const sections = [];
+//     let currentSection = '';
+
+//     this.splitByHTML(content).forEach(section => {
+//       if (section.includes('ST') && section.includes('EN')) {
+//         sections.push(currentSection);
+//         currentSection = '';
+//       } else {
+//         currentSection += section;
+//       }
+//     });
+
+//     // Add the last section if it exists
+//     if (currentSection.length > 0) {
+//       sections.push(currentSection);
+//     }
+
+//     return sections;
+//   }
+//   splitByType(content) {
+//     // Split content into sections based on type
+//     const sectionsByType = {};
+
+//     this.splitByHTML(content).forEach(section => {
+//       const typeMatch = section.match(/<([a-z]+)\b[^>]*>(.*?)<\/\1>/i);
+//       if (typeMatch) {
+//         const type = typeMatch[1].toLowerCase();
+//         if (!sectionsByType[type]) {
+//           sectionsByType[type] = [];
+//         }
+//         sectionsByType[type].push(typeMatch[2]);
+//       }
+//     });
+
+//     return sectionsByType;
+//   }
+//   splitByParagraph(content) {
+//     return content.split('\n\n');
+//   }
+//   splitBySentence(content) {
+//     return content.match(/[^.!?]+[.!?]+/g) || [];
+//   }
+//   // --- other ---
+//   isResponseComplete() {
+//     return this.jsonResponse !== null;
+//   }
+//   extractSections(parsedContent) {
+//     try {
+//       // Extract sections from the parsed content if possible
+//       const sectionData = JSON.parse(parsedContent);
+//       this.sections.push(parseContent(JSON.stringify(sectionData)));
+//     } catch (error) {
+//       logger.error('Error extracting sections:', error);
+//       // Store raw content if parsing fails
+//       this.sections.push({ rawContent: parsedContent });
+//     }
+//   }
+// }
+
 // const createSystemPromptA = () => {
 //   return `You are a helpful AI assistant. Create an absolutely consistent JSON response format for the chat bot app server stream response endpoint. Ensure specific structures are followed for different file types such as code, markdown, text, etc. The response must include the following components:
 // - \`status\`: A string indicating the status of the response, e.g., 'success' or 'error'.

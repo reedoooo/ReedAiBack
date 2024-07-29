@@ -10,17 +10,13 @@ const { TextLoader } = require('langchain/document_loaders/fs/text');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { createPineconeIndex } = require('./create.js');
 const { updatePinecone } = require('./update.js');
-const { queryPineconeVectorStoreAndQueryLLM } = require('../../api/query.js');
+const { queryPineconeVectorStoreAndQueryLLM } = require('./query.js');
 const { PDFLoader } = require('@langchain/community/document_loaders/fs/pdf');
-const { processCSV } = require('../../processing/csv.js');
-const { processDocX } = require('../../processing/docx.js');
-const { processJSON } = require('../../processing/json.js');
-const { processPdf } = require('../../processing/pdf.js');
-const { processTxt } = require('../../processing/txt.js');
 const { getEnv } = require('../../api/env.js');
 const { CSVLoader } = require('@langchain/community/document_loaders/fs/csv');
 const path = require('path');
 const { OpenAIEmbeddings } = require('@langchain/openai');
+const { processDocument } = require('../../processing/utils/main.js');
 
 require('dotenv').config();
 
@@ -37,25 +33,6 @@ const loader = new DirectoryLoader(publicFilesDirectory, {
   // '.js': (path) => new JavascriptLoader(path)
 });
 
-const processDocument = async doc => {
-  const extension = doc.metadata.source.split('.').pop().toLowerCase();
-  switch (extension) {
-    case 'csv':
-      return processCSV(doc.pageContent);
-    case 'docx':
-      return processDocX(doc.pageContent);
-    case 'json':
-      return processJSON(doc.pageContent);
-    case 'md':
-      return processMarkdown(doc.pageContent);
-    case 'pdf':
-      return processPdf(doc.pageContent);
-    case 'txt':
-      return processTxt(doc.pageContent);
-    default:
-      throw new Error(`Unsupported file type: ${extension}`);
-  }
-};
 const chatCompletionWithLLM = async data => {
   const { prompt: prompt, apiKey: apiKey } = data;
 

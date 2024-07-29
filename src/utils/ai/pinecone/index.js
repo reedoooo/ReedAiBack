@@ -8,6 +8,6 @@ module.exports = {
   ...require('./main.js'),
   ...require('./old.js'),
   ...require('./update.js'),
-  ...require('../../api/query.js'),
+  ...require('./query.js'),
   ...require('./get.js'),
 };

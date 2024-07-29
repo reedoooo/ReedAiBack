@@ -3,9 +3,9 @@
 const express = require('express');
 const router = express.Router();
 
-const chatSessionsRoutes = require('./Sessions');
+// const chatSessionsRoutes = require('./Sessions');
 const chatMessagesRoutes = require('./Messages');
-const chatWorkspacesRoutes = require('./Workspaces');
+// const chatWorkspacesRoutes = require('./Workspaces');
 const chatPromptsRoutes = require('./Prompts');
 const chatAssistantsRoutes = require('./Assistants');
 const chatFoldersRoutes = require('./Folders');
@@ -16,8 +16,8 @@ const chatToolsRoutes = require('./Tools');
 const chatPresetsRoutes = require('./Presets/index.jsx');
 const chatCollectionsRoutes = require('./Collections');
 
-router.use('/workspaces', chatWorkspacesRoutes); // [ ] Fixed
-router.use('/chat_sessions', chatSessionsRoutes); // [ ] Fixed
+// router.use('/workspaces', chatWorkspacesRoutes); // [ ] Fixed
+// router.use('/chat_sessions', chatSessionsRoutes); // [ ] Fixed
 router.use('/chat_models', chatModelRoutes);
 router.use('/chat_messages', chatMessagesRoutes);
 router.use('/chat_prompts', chatPromptsRoutes); // [ ] Fixed

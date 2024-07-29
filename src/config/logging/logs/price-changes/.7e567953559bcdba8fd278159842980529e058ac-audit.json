@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/price-changes/.7e567953559bcdba8fd278159842980529e058ac-audit.json",
+    "files": [
+        {
+            "date": 1722131612085,
+            "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/price-changes/price-change-2024-07-27.log",
+            "hash": "5452e55b21bbb4b0d7c3d5435332ddf8d1683e2b37b4241ca343c66861d3eb54"
+        },
+        {
+            "date": 1722150000470,
+            "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/price-changes/price-change-2024-07-28.log",
+            "hash": "018a11316a25e132b4ee1c9f53ad7a67539aa881fd60c5697c920ed9b2eaaaed"
+        }
+    ],
+    "hashType": "sha256"
+}

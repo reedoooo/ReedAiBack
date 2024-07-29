@@ -1,7 +1,5 @@
 // [app.js] is the entry point of the application. It sets up the express app, middlewares, routes, and error handling.
 
-// require('dotenv').config();
-// require('module-alias/register');
 const express = require('express');
 const { unifiedErrorHandler } = require('./middlewares/unifiedErrorHandler');
 const setupRoutes = require('./routes');

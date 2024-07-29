@@ -2,7 +2,9 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 const { OpenAI } = require('@langchain/openai');
 const { loadQAStuffChain } = require('langchain/chains');
 const { Document } = require('langchain/document');
-const { getEnv } = require('.');
+const { getEnv } = require('../../api');
+const { vectorize } = require('../../processing/utils/vectorize');
+const { getPineconeClient } = require('./get');
 
 const queryPineconeVectorStoreAndQueryLLM = async (pinecone, indexName, question, embeddings) => {
   console.log('Querying Pinecone vector store...');
@@ -27,14 +29,13 @@ const queryPineconeVectorStoreAndQueryLLM = async (pinecone, indexName, question
       const llm = new OpenAI({
         apiKey: getEnv('OPENAI_API_KEY') || process.env.OPENAI_API_KEY,
         model: 'gpt-4-1106-preview',
-        // apiKey: getEnv('OPENAI_API_KEY') || process.env.OPENAI_API_KEY,
         temperature: 0.7, // Adjust as needed
       });
       const chain = loadQAStuffChain(llm);
 
       const concatenatedPageContent = queryResponse.matches.map(match => match.metadata.content).join(' ');
 
-      const result = await chain.call({
+      const result = await chain.invoke({
         input_documents: [new Document({ pageContent: concatenatedPageContent })],
         question: question,
       });
@@ -51,4 +52,22 @@ const queryPineconeVectorStoreAndQueryLLM = async (pinecone, indexName, question
   }
 };
 
-module.exports = { queryPineconeVectorStoreAndQueryLLM };
+const queryComponents = async (req, res) => {
+  const { query, library } = req.body;
+
+  try {
+    const vector = await vectorize(query);
+    const pinecone = await getPineconeClient();
+    const result = await pinecone.query({
+      namespace: library,
+      vector,
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error querying components.');
+  }
+};
+
+module.exports = { queryPineconeVectorStoreAndQueryLLM, queryComponents };

@@ -1,4 +1,4 @@
-const { logger } = require('../../../config');
+const logger = require('../../../config/logging');
 const { ChatSession, UserActiveChatSession, Message } = require('../../../models');
 const { saveMessagesToSession } = require('./helpers');
 const initiateChatSession = async (req, res) => {
@@ -280,7 +280,9 @@ const updateChatSession = async (req, res) => {
 // --- NEW ---
 const getChatSessionBySessionId = async (req, res) => {
   try {
-    const session = await ChatSession.findById(req.params.id).populate('participants').populate('messages');
+    const { sessionId } = req.body;
+    logger.info(`Get chat session by sessionId: ${sessionId}`);
+    const session = await ChatSession.findById(sessionId).populate('participants').populate('messages');
     if (session) {
       res.status(200).json(session);
     } else {
@@ -292,7 +294,8 @@ const getChatSessionBySessionId = async (req, res) => {
 };
 const getChatSessionMessagesBySessionId = async (req, res) => {
   try {
-    const session = await ChatSession.findById(req.params.id).populate('participants').populate('messages');
+    const { sessionId } = req.body;
+    const session = await ChatSession.findById(sessionId).populate('participants').populate('messages');
     if (session) {
       res.json(session.messages);
     } else {

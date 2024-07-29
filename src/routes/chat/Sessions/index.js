@@ -6,7 +6,7 @@ const controllers = mainControllerFile.sessions;
 
 // --- ---
 // Create a new chat session
-router.post('/', controllers.createChatSession);
+// router.post('/', controllers.createChatSession);
 router.post('/initiate', controllers.initiateChatSession);
 router.get('/default', controllers.getChatSessionDefault);
 router.get('/:userId/retrieveSessions', controllers.getChatSessionsByUser);
@@ -24,10 +24,10 @@ router.put('/userActive/:userId/update', controllers.updateUserActiveChatSession
 router.delete('/userActive/:userId/delete', controllers.deleteUserActiveChatSession);
 
 // --- NEW ---
-router.put('/:id/messages/save', controllers.saveMessagesToChat);
+// router.post('/session/messages/save', controllers.saveMessagesToChat);
 router.get('/session/:id', controllers.getChatSessionBySessionId);
 router.get('/session/:id/messages', controllers.getChatSessionMessagesBySessionId);
-router.get('/:workspaceId/retrieveSessions', async (req, res) => {
+router.get('/:sessionId/retrieveSessions', async (req, res) => {
   try {
     const chatSessions = await ChatSession.find({ workspaceId: req.params.workspaceId }).sort({ createdAt: -1 });
     res.json({ chatSessions });

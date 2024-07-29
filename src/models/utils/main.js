@@ -59,10 +59,6 @@ const getSessionMessages = async sessionId => {
       chatSession.messages.unshift(systemMessageId);
       await chatSession.save();
     }
-    logger.info(
-      `Created or fetched existing chat session messages: ${JSON.stringify(chatMessages, null, 2)}`,
-      chatMessages
-    );
     return chatMessages;
   } catch (error) {
     console.error('Error fetching session messages:', error);
@@ -100,16 +96,16 @@ const initializeChatSession = async (sessionId, userId) => {
     }
 
     // CLEAR PREVIOUS CHAT HISTOR
-    await Message.deleteMany({ sessionId: chatSession._id });
-    await chatSession.updateOne({}, { $set: { messages: [] } });
+    // await Message.deleteMany({ sessionId: chatSession._id });
+    // await chatSession.updateOne({}, { $set: { messages: [] } });
 
     // SAVE CLEARED CHAT HISTORY
-    await chatSession.save();
+    // await chatSession.save();
 
     // PARSE ALL MESSAGES TO HTML
-    const messages = await Message.find({ sessionId: chatSession._id });
-    const parsedMessagesHTML = parseMessagesToHTML(messages);
-    logger.info(`Parsed ${messages.length} messages to HTML: ${parsedMessagesHTML}`, parsedMessagesHTML);
+    // const messages = await Message.find({ sessionId: chatSession._id });
+    // const parsedMessagesHTML = parseMessagesToHTML(messages);
+    // logger.info(`Parsed ${messages.length} messages to HTML: ${parsedMessagesHTML}`, parsedMessagesHTML);
     return chatSession;
   } catch (error) {
     logger.error('Error initializing chat session:', error.message);

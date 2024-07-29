@@ -1,16 +1,17 @@
 const { encode } = require('gpt-tokenizer');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const { CHUNK_SIZE, CHUNK_OVERLAP } = require('../../config/constants');
+const { CHUNK_SIZE, CHUNK_OVERLAP } = require('../../../config/constants');
 
-const processTxt = async txt => {
-  const fileBuffer = Buffer.from(await txt.arrayBuffer());
+const processMarkdown = async markdown => {
+  const fileBuffer = Buffer.from(await markdown.arrayBuffer());
   const textDecoder = new TextDecoder('utf-8');
   const textContent = textDecoder.decode(fileBuffer);
 
-  const splitter = new RecursiveCharacterTextSplitter({
+  const splitter = RecursiveCharacterTextSplitter.fromLanguage('markdown', {
     chunkSize: CHUNK_SIZE,
     chunkOverlap: CHUNK_OVERLAP,
   });
+
   const splitDocs = await splitter.createDocuments([textContent]);
 
   let chunks = [];
@@ -27,4 +28,4 @@ const processTxt = async txt => {
   return chunks;
 };
 
-module.exports = { processTxt };
+module.exports = { processMarkdown };

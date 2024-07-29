@@ -15,11 +15,22 @@ const {
 const logger = require('../../../config/logging/index.js');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { MongoDBChatMessageHistory } = require('@langchain/mongodb');
-
-// --- INITIALIZE COMPONENTS ---
-// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-
+const { SystemMessage, HumanMessage } = require('@langchain/core/messages');
+const { TokenTextSplitter, RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
+function messageTypeToOpenAIRole(type) {
+  switch (type) {
+    case 'system':
+      return 'system';
+    case 'assistant':
+      return 'assistant';
+    case 'user':
+      return 'user';
+    case 'function':
+      return 'function';
+    default:
+      throw new Error(`Unknown message type: ${type}`);
+  }
+}
 // --- RESPONSE HANDLER ---
 class StreamResponseHandler {
   constructor() {
@@ -54,20 +65,63 @@ class StreamResponseHandler {
 }
 
 // --- PROMPT TEMPLATE ---
-const buildPromptFromTemplate = async (previousMessages, prompt) => {
+const buildPromptFromTemplate = async (summary, prompt) => {
   try {
     const tempObj = {
-      input: `Please respond to the following prompt: ${prompt} Previous conversation context: ${previousMessages}`,
+      input: `Please respond to the following prompt: ${prompt}`,
     };
     const promptTemplate = new PromptTemplate({
       template: tempObj.input,
-      inputVariables: ['previousMessages', 'prompt'],
+      inputVariables: ['summary', 'prompt'],
     });
     return promptTemplate.format();
   } catch (error) {
     throw new Error(`Error building prompt from template: ${error.message}`);
   }
 };
+
+// Function to summarize messages
+async function summarizeMessages(messages, openai) {
+  const summarizeFunction = {
+    name: 'summarize_messages',
+    description: 'Summarize a list of chat messages',
+    parameters: {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+          description: 'A concise summary of the chat messages',
+        },
+      },
+      required: ['summary'],
+    },
+  };
+
+  const response = await openai.completionWithRetry({
+    model: 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant that summarizes chat messages.' },
+      {
+        role: 'user',
+        content: `Summarize these messages. Give an overview of each message: ${JSON.stringify(messages)}`,
+      },
+    ],
+    functions: [summarizeFunction],
+    function_call: { name: 'summarize_messages' },
+  });
+
+  const functionCall = response.choices[0].message.function_call;
+  if (functionCall && functionCall.name === 'summarize_messages') {
+    return JSON.parse(functionCall.arguments).summary;
+  }
+  return 'Unable to generate summary';
+}
+
+function isCodeRelated(summary) {
+  const codeKeywords = ['code', 'program', 'function', 'variable', 'syntax', 'algorithm'];
+  return codeKeywords.some(keyword => summary.includes(keyword));
+};
+
 // --- MAIN FUNCTION ---
 const withChatCompletion = async data => {
   const { apiKey, pineconeIndex, completionModel, namespace, prompt, sessionId, userId, role, stream, res } = data;
@@ -75,22 +129,50 @@ const withChatCompletion = async data => {
   try {
     // [INIT SESSION]
     const chatSession = await initializeChatSession(sessionId, userId);
-
+    // [INIT OPENAI]
+    const chatOpenAI = new ChatOpenAI({
+      modelName: completionModel,
+      temperature: chatSession.settings.temperature,
+      maxTokens: chatSession.settings.maxTokens,
+      topP: chatSession.settings.topP,
+      n: chatSession.settings.n,
+      streaming: true,
+      openAIApiKey: apiKey || process.env.OPENAI_API_KEY,
+      organization: 'reed_tha_human',
+      functions: {
+        summarize_messages: {
+          parameters: {
+            type: 'object',
+            properties: {
+              summary: {
+                type: 'string',
+                description: 'A concise summary of the chat messages',
+              },
+            },
+            required: ['summary'],
+          },
+        },
+      },
+      function_call: 'auto',
+    });
+    // [INIT PINECONE]
+    const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+    // [INIT LANGCHAIN EMBEDDINGS]
+    const embedder = new OpenAIEmbeddings({
+      modelName: 'text-embedding-3-small',
+      apiKey: apiKey || process.env.OPENAI_API_KEY,
+      dimensions: 512, // Use 512-dimensional embeddings
+    });
     // [MONGODB HISTORY INIT]
     const chatHistory = new MongoDBChatMessageHistory({
       collection: Message.collection, // Use your existing Message collection
       sessionId: chatSession._id,
     });
-    logger.debug(`CHAT HISTORY: ${JSON.stringify(chatHistory)}`);
-
+    // [GET SESSION MESSAGES]
     const messages = (await getSessionMessages(chatSession._id)) || [];
-    const previousMessages = messages
-      .slice(1)
-      .map(msg => `${msg.role}: ${msg.content}`)
-      .join('\n');
-
-    logger.info(`PREVIOUS MESSAGES: ${JSON.stringify(previousMessages)}`);
-
+    // [SUMMARIZE MESSAGES]
+    const summary = await summarizeMessages(messages.slice(-5), chatOpenAI);
+    logger.info(`SUMMARY: ${summary}`);
     await chatHistory.addUserMessage(prompt);
     const newUserMessageId = await createMessage(
       chatSession._id,
@@ -101,66 +183,42 @@ const withChatCompletion = async data => {
     );
     chatSession.messages.push(newUserMessageId);
     await chatSession.save();
-
-    // [PINECONE EMBEDDING SETUP]
-    const embedder = new OpenAIEmbeddings({
-      modelName: 'text-embedding-3-small',
-      apiKey: apiKey || process.env.OPENAI_API_KEY,
-      dimensions: 512, // Use 512-dimensional embeddings
-    });
+    // [PINECONE VECTOR STORE SETUP]
     const vectorStore = await PineconeStore.fromExistingIndex(embedder, {
       pineconeIndex: await createPineconeIndex(pinecone, pineconeIndex),
-      namespace: namespace,
+			namespace: 'library-documents',
+      textKey: 'text',
     });
-
+    // [PINECONE QUERY]
+    const relevantDocs = await vectorStore.similaritySearch(prompt, 5);
+    logger.info(`Relevant Docs: ${JSON.stringify(relevantDocs)}`, relevantDocs);
+    const context = relevantDocs.map(doc => doc.pageContent).join('\n');
+    logger.info(`Context: ${context}`);
     // [PROMPT TEMPLATE SETUP]
-    const formattedPrompt = await buildPromptFromTemplate(previousMessages, prompt);
+    const promptTemplate = new PromptTemplate({
+      template: 'Context: {context}\n\nSummary of previous messages: {summary}\n\nUser: {prompt}\nAI:',
+      inputVariables: ['context', 'summary', 'prompt'],
+    });
+    const formattedPrompt = await promptTemplate.format({ context, summary, prompt });
     logger.info(`Formatted Prompt: ${formattedPrompt}`);
-
     // [STREAM RESPONSE HANDLER]
     const responseHandler = new StreamResponseHandler();
-
-    const chatOpenAI = new ChatOpenAI({
-      modelName: completionModel,
-      temperature: chatSession.settings.temperature,
-      maxTokens: chatSession.settings.maxTokens,
-      topP: chatSession.settings.topP,
-      n: chatSession.settings.n,
-      streaming: true,
-      openAIApiKey: apiKey || process.env.OPENAI_API_KEY,
-    });
-
-    logger.info(`Chat OpenAI: ${JSON.stringify(chatOpenAI)}`, chatOpenAI);
-    // const result = await chatOpenAI.generate({
-    //   prompts: JSON.stringify(formattedPrompt),
-    //   // JSON.stringify([...messages, { role: 'user', content: formattedPrompt }]),
-    // });
+    // [CHAT OPENAI COMPLETION]
     const result = await chatOpenAI.completionWithRetry({
       model: completionModel,
-      messages: [...messages, { role: 'user', content: prompt }],
+      messages: [...messages, { role: 'user', content: formattedPrompt }],
       stream: true,
       response_format: { type: 'json_object' },
     });
     logger.info(`Chat RESULT: ${JSON.stringify(result)}`, result);
 
     for await (const chunk of result) {
-      const chunkContent = responseHandler.handleChunk(chunk);
-      // process.stdout.write(chunkContent || '');
-
+      const chunkContent = await responseHandler.handleChunk(chunk);
       res.write(`data: ${JSON.stringify({ content: chunkContent })}\n\n`);
+
       if (responseHandler.isResponseComplete()) {
         const fullResponse = responseHandler.getFullResponse();
-        logger.info(`fullResponse fullResponse: ${JSON.stringify(fullResponse)}`, fullResponse);
-        // const updatedResponseObject = {
-        //   type: JSON.parse(fullResponse).type,
-        //   data: fullResponse,
-        //   metadata: JSON.parse(fullResponse).metadata,
-        // };
-        // const response = JSON.stringify({ content: JSON.parse(fullResponse), complete: true });
-        const response = JSON.stringify({ content: fullResponse});
-        logger.info(`response response: ${response}`, response);
-
-        // res.write(`data: ${response}\n\n`);
+        logger.debug(`fullResponse fullResponse: ${JSON.stringify(fullResponse)}`, fullResponse);
 
         const assistantMessageId = await createMessage(
           chatSession._id,
@@ -172,8 +230,17 @@ const withChatCompletion = async data => {
         chatSession.messages.push(assistantMessageId);
         await chatSession.save();
 
-        const docs = [{ pageContent: prompt, metadata: { chatId: sessionId, chatSession, role } }];
-        await vectorStore.addDocuments(docs, { namespace });
+        // Add the interaction to the vector store
+        const docs = [
+          { pageContent: prompt, metadata: { chatId: sessionId, role: 'user' } },
+          { pageContent: fullResponse, metadata: { chatId: sessionId, role: 'assistant' } },
+        ];
+        const textSplitter = new RecursiveCharacterTextSplitter({
+          chunkSize: 1000,
+          chunkOverlap: 200,
+        });
+        const splitDocs = await textSplitter.splitDocuments(docs);
+        await vectorStore.addDocuments(splitDocs);
       }
     }
   } catch (error) {
@@ -229,262 +296,73 @@ const chatStream = async (req, res) => {
 module.exports = {
   chatStream,
 };
-// const buildPromptFromTemplate = async (previousMessages, prompt) => {
-//   try {
-//     const chatPrompt = ChatPromptTemplate.fromPromptMessages([
-//       HumanMessagePromptTemplate.fromTemplate(
-//         'Please respond to the following prompt using JSON formatting: {prompt}\n' +
-//           'Remember to use appropriate json elements to structure your response.\n' +
-//           'Previous conversation context: {previousMessages}'
-//       ),
-//     ]);
-//     const formattedPrompt = await chatPrompt.formatMessages({
-//       prompt: prompt,
-//       previousMessages: previousMessages,
-//     });
-//     return formattedPrompt;
-//   } catch (error) {
-//     throw new Error(`Error building prompt from template: ${error.message}`);
-//   }
-// };
-// class StreamResponseHandler {
-//   constructor() {
-//     this.fullResponse = '';
-//     this.currentSectionIndex = 0;
-//     this.currentSectionType = '';
-//     this.currentSectionContent = '';
-//     this.currentSection = `{}`;
-//     this.sections = [];
-//     this.batchedChunks = [];
-//     this.concatenatedBatchChunks = '';
-//     this.isInSection = false;
-//     this.jsonResponse = null;
-//     this.formattedContent = '';
-//     this.concatenatedChunksToSection = `
-//       {
-//        'type': 'h1',
-//        'content': '',
-//         'index': 0
-//       }
-//     `;
-//     this.parsedChunks = [];
-//   }
-//   // --- handlers ---
-//   // extractContent(chunk) {
-//   //   return chunk.choices[0]?.delta?.content || '';
-//   // }
-//   handleChunk(chunk) {
-//     const content = extractContent(chunk);
+/*
+    if (isCodeRelated(summary)) {
+      // [PINECONE VECTOR STORE SETUP]
+      const vectorStore = await PineconeStore.fromExistingIndex(embedder, {
+        pineconeIndex: await createPineconeIndex(pinecone, pineconeIndex),
+        namespace: namespace,
+        textKey: 'text',
+      });
+      // [CHUNKING AND EMBEDDING]
+      const processPrompt = async prompt => {
+        const splitter = new RecursiveCharacterTextSplitter({
+          chunkSize: 1000,
+          chunkOverlap: 100,
+        });
+        const splitDocs = await splitter.createDocuments([prompt]);
+        let chunks = [];
 
-//     try {
-//       logger.debug(`Received chunk: ${JSON.stringify(chunk, null, 2)}`, chunk);
-//       logger.debug(`Received content: ${JSON.stringify(content)}`, content);
+        for (let i = 0; i < splitDocs.length; i++) {
+          const doc = splitDocs[i];
 
-//       // --- ---
-//       this.fullResponse += content;
+          chunks.push({
+            content: doc,
+          });
+        }
 
-//       // Parse the chunk content
-//       const parsedChunkContent = parseContent(content);
-//       logger.debug(`Parsed chunk content: ${JSON.stringify(parsedChunkContent)}`, parsedChunkContent);
-//       this.parsedChunks.push(parsedChunkContent);
+        return chunks;
+      };
+      const processedPrompt = await processPrompt(prompt);
+      const embedding = await embedder.embedQuery(processedPrompt);
+      // [PINECONE DOCUMENT UPDATING]
+      const vector = {
+        id: `doc_${i}`,
+        values: embedding,
+        metadata: {
+          content: prompt,
+        },
+      };
+      await vectorStore.addVectors([vector], { namespace });
+      // [PINECONE QUERY]
+      const queryResult = await pinecone.Index(getEnv('PINECONE_INDEX')).query({
+        namespace: namespace,
+        vector: await embedder.embedQuery(prompt),
+        topK: 10,
+      });
+      console.log(`Found ${queryResult.matches.length} matches...`);
+      console.log(`Asking question: ${prompt}...`);
+      logger.info(`PINECONE QUERY RESULT: ${JSON.stringify(queryResult)}`);
+      // [PINECONE ANSWERING QUESTIONS]
+      if (queryResponse.matches.length) {
+        const concatenatedPageContent = queryResult.matches.map(match => match.metadata.content).join(' ');
+        const result = await chatOpenAI.completionWithRetry({
+          model: completionModel,
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant that answers questions about code.' },
+            { role: 'user', content: `Ask a question about this code: ${concatenatedPageContent}` },
+          ],
+        });
 
-//       // Check for section start
-//       if (content.includes('ST-')) {
-//         this.isInSection = true;
-//         this.currentSectionContent = '';
-//         this.concatenatedChunksToSection = '';
-//       }
-
-//       // Append content if we are within a section
-//       if (this.isInSection) {
-//         this.currentSectionContent += content;
-//       }
-
-//       // Check for section end
-//       if (content.includes('-EN')) {
-//         this.isInSection = false;
-//         logger.info('Section content:', this.currentSectionContent);
-//         this.tryParseSections(this.currentSectionContent);
-//         this.currentSectionContent = '';
-//       }
-//       this.tryParseJsonResponse();
-//       this.formattedContent = parseContent(this.fullResponse);
-
-//       return content;
-//     } catch (error) {
-//       console.error('Error handling chunk:', error);
-//       throw error;
-//     }
-//   }
-//   handleBatchChunk(chunk) {
-//     const batchSize = 10; // Adjust the batch size as needed
-
-//     try {
-//       // const content = this.extractContent(chunk);
-//       this.batchedChunks.push(chunk);
-//       const batchContentString = processChunkBatch(batchedChunks);
-//       if (batchedChunks.length >= batchSize) {
-//         batchedChunks.length = 0;
-//         this.concatenatedBatchChunks = batchContentString;
-//         return batchContentString;
-//       }
-//       // const batchContent = this.batchedChunks.join('');
-//       // this.batchedChunks = [];
-//       return batchContent;
-//     } catch (error) {
-//       console.error('Error handling batch chunk:', error);
-//       throw error;
-//     }
-//   }
-//   // --- tryers ---
-//   tryParseJsonResponse() {
-//     try {
-// const jsonObject = JSON.parse(this.fullResponse);
-// // Parse each section in the JSON response
-// this.jsonResponse = jsonObject.map(section => parseContent(JSON.stringify(section)));
-//     } catch (error) {
-//       // If parsing fails, it's likely not complete JSON yet
-//       logger.debug('Full response is not valid JSON yet');
-//     }
-//   }
-//   tryParseSections(sectionContent) {
-//     try {
-//       const sectionData = JSON.parse(sectionContent);
-//       this.sections.push(parseContent(JSON.stringify(sectionData)));
-//     } catch (error) {
-//       console.error('Error parsing section:', error);
-//       // If JSON parsing fails, store the raw content
-//       this.sections.push({ rawContent: parseContent(sectionContent) });
-//     }
-//   }
-//   tryParseJSON() {
-//     try {
-//       this.jsonResponse = JSON.parse(this.fullResponse);
-//     } catch (error) {
-//       // If parsing fails, it means the JSON is incomplete or invalid
-//     }
-//   }
-//   // --- getters ---
-//   getFormattedResponse() {
-//     return this.formattedContent;
-//   }
-//   getFullResponse() {
-//     return this.fullResponse;
-//   }
-//   getSections() {
-//     return this.sections;
-//   }
-//   getParsedChunks() {
-//     return this.parsedChunks;
-//   }
-//   // --- splitters ---
-//   splitResponse(option) {
-//     switch (option) {
-//       case 'byParagraph':
-//         return this.splitByParagraph(this.fullResponse);
-//       case 'bySentence':
-//         return this.splitBySentence(this.fullResponse);
-//       case 'byHTML':
-//         return this.splitByHTML(this.fullResponse);
-//       case 'bySection':
-//         return this.splitBySection(this.fullResponse);
-//       case 'byType':
-//         return this.splitByType(this.fullResponse);
-//       default:
-//         return [this.fullResponse];
-//     }
-//   }
-//   splitByHTML(content) {
-//     // Regular expression to match HTML tags
-//     const regex = /<[^>]+>/g;
-//     const matches = content.match(regex);
-
-//     // If there are no matches, return the original content
-//     if (!matches) {
-//       return [content];
-//     }
-
-//     const sections = [];
-//     let currentSection = '';
-
-//     // Iterate through the matches and add sections to the sections array
-//     matches.forEach(match => {
-//       if (match.startsWith('<') && match.endsWith('>')) {
-//         // If the match is an HTML tag, check if we're already in a section
-//         if (currentSection.length > 0) {
-//           sections.push(currentSection);
-//           currentSection = '';
-//         }
-//       } else {
-//         // If the match is not an HTML tag, append it to the current section
-//         currentSection += match;
-//       }
-//     });
-
-//     // Add the last section if it exists
-//     if (currentSection.length > 0) {
-//       sections.push(currentSection);
-//     }
-
-//     return sections;
-//   }
-//   splitBySection(content) {
-//     // Split content into sections based on section markers
-//     const sections = [];
-//     let currentSection = '';
-
-//     this.splitByHTML(content).forEach(section => {
-//       if (section.includes('ST') && section.includes('EN')) {
-//         sections.push(currentSection);
-//         currentSection = '';
-//       } else {
-//         currentSection += section;
-//       }
-//     });
-
-//     // Add the last section if it exists
-//     if (currentSection.length > 0) {
-//       sections.push(currentSection);
-//     }
-
-//     return sections;
-//   }
-//   splitByType(content) {
-//     // Split content into sections based on type
-//     const sectionsByType = {};
-
-//     this.splitByHTML(content).forEach(section => {
-//       const typeMatch = section.match(/<([a-z]+)\b[^>]*>(.*?)<\/\1>/i);
-//       if (typeMatch) {
-//         const type = typeMatch[1].toLowerCase();
-//         if (!sectionsByType[type]) {
-//           sectionsByType[type] = [];
-//         }
-//         sectionsByType[type].push(typeMatch[2]);
-//       }
-//     });
-
-//     return sectionsByType;
-//   }
-//   splitByParagraph(content) {
-//     return content.split('\n\n');
-//   }
-//   splitBySentence(content) {
-//     return content.match(/[^.!?]+[.!?]+/g) || [];
-//   }
-//   // --- other ---
-//   isResponseComplete() {
-//     return this.jsonResponse !== null;
-//   }
-//   extractSections(parsedContent) {
-//     try {
-//       // Extract sections from the parsed content if possible
-//       const sectionData = JSON.parse(parsedContent);
-//       this.sections.push(parseContent(JSON.stringify(sectionData)));
-//     } catch (error) {
-//       logger.error('Error extracting sections:', error);
-//       // Store raw content if parsing fails
-//       this.sections.push({ rawContent: parsedContent });
-//     }
-//   }
-// }
+        if (result.choices[0].message.content) {
+          console.log(`Answer: ${result.choices[0].message.content}`);
+        } else {
+          console.log('No answer found.');
+        }
+      }
+      // [PINECONE DOCUMENT UPDATING]
+      const docs = [{ pageContent: prompt, metadata: { chatId: sessionId, chatSession, role } }];
+      const flattenedDocs = docs.flat();
+      await vectorStore.addDocuments(docs, { namespace });
+    }
+*/

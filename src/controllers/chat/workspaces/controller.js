@@ -1,4 +1,5 @@
 // controllers/workspaceController.js
+const logger = require('../../../config/logging');
 const workspaceService = require('./service');
 
 const createHomeWorkspace = async (req, res) => {
@@ -48,7 +49,8 @@ const getHomeWorkspaceByUserId = async (req, res) => {
 };
 
 const getWorkspaceByWorkspaceId = async (req, res) => {
-  const { workspaceId } = req.params;
+  const { workspaceId } = req.body;
+  logger.info(`workspaceId: ${workspaceId}`);
   try {
     const workspace = await workspaceService.getWorkspaceById(workspaceId);
     res.status(200).json(workspace);

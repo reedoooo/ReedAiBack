@@ -9,8 +9,6 @@ const createPineconeIndex = async (pinecone, indexName, vectorDimension) => {
   const index = pinecones.Index(indexName);
   const indexCloud = getEnv('PINECONE_CLOUD');
   const indexRegion = getEnv('PINECONE_REGION');
-  // logger.info(`=== DATA: ${JSON.stringify(index)} ===`);
-  // logger.info(`ALL INDICES: ${JSON.stringify(indexList)}`);
   const indexNames = indexList.indexes.map(index => index.name);
   if (!indexNames.includes(indexName)) {
     await pinecones.createIndex({
