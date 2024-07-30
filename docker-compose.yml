@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  cover-letter-backend:
+    container_name: cover_letter_backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MONGO_URL=${MONGO_URI}
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules

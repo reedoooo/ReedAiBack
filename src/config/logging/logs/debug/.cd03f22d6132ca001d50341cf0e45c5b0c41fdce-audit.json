@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/debug/.cd03f22d6132ca001d50341cf0e45c5b0c41fdce-audit.json",
+    "files": [
+        {
+            "date": 1722131612090,
+            "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/debug/debug-2024-07-27.log",
+            "hash": "6bc139f8447a25b7e8bde8e559df1ad3b091ff5d6b26d3469ccac898bb3f22ce"
+        },
+        {
+            "date": 1722150000475,
+            "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/debug/debug-2024-07-28.log",
+            "hash": "258919a1453a84f78bc67790cf2a404f4923fbb1fb47cd061aa1c93dc0875bb1"
+        }
+    ],
+    "hashType": "sha256"
+}
