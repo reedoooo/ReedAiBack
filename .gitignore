@@ -1,13 +1,17 @@
+# Ignore the .env file
 .env
+# Ignore the package-lock.json file
 package-lock.json
+# Ignore the coverage directory
 /coverage
-
 # Ignore the build directory
 /build
-
 # Ignore the dist directory
 /dist
+# Ignore the ignore directory
 /ignore
+# Ignore logs
+/src/config/logging/logs
 
 # Ignore the node_modules directory
 /node_modules

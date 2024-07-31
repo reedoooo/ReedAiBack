@@ -14,6 +14,21 @@
             "date": 1722150000475,
             "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/silly/silly-2024-07-28.log",
             "hash": "d42b5db3e4b05d8cb3b9aa50d2ece56088f4b7afa1b041bdeaa775239af4c753"
+        },
+        {
+            "date": 1722241102455,
+            "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/silly/silly-2024-07-29.log",
+            "hash": "096fae53ff1284d3a0f3920265322d0e0a7b80c45933f502cc2a3c1589e5df2b"
+        },
+        {
+            "date": 1722322800583,
+            "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/silly/silly-2024-07-30.log",
+            "hash": "94dcae3eb957aa3b3f1f5dc2f2663112accc6d718175607eef33d460524d616a"
+        },
+        {
+            "date": 1722413597602,
+            "name": "/Users/reedvogt/Desktop/ReedAiBack/src/config/logging/logs/silly/silly-2024-07-31.log",
+            "hash": "b4970685096b1cef7ec793a8239dc20c041fb2760a897de548052b352fca3a42"
         }
     ],
     "hashType": "sha256"

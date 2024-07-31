@@ -1,7 +1,7 @@
 // [app.js] is the entry point of the application. It sets up the express app, middlewares, routes, and error handling.
 
 const express = require('express');
-const { unifiedErrorHandler } = require('./middlewares/unifiedErrorHandler');
+// const { unifiedErrorHandler } = require('./middlewares/unifiedErrorHandler');
 const setupRoutes = require('./routes');
 const middlewares = require('./middlewares');
 
@@ -14,6 +14,6 @@ middlewares(app);
 setupRoutes(app);
 
 // Error handling middleware
-app.use(unifiedErrorHandler);
+// app.use(unifiedErrorHandler);
 
 module.exports = app;

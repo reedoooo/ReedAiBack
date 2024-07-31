@@ -95,12 +95,12 @@ const initializeChatSession = async (sessionId, userId) => {
       await chatSession.save();
     }
 
-    // CLEAR PREVIOUS CHAT HISTOR
-    // await Message.deleteMany({ sessionId: chatSession._id });
-    // await chatSession.updateOne({}, { $set: { messages: [] } });
+    // CLEAR PREVIOUS CHAT HISTORY
+    await Message.deleteMany({ sessionId: chatSession._id });
+    await chatSession.updateOne({}, { $set: { messages: [] } });
 
     // SAVE CLEARED CHAT HISTORY
-    // await chatSession.save();
+    await chatSession.save();
 
     // PARSE ALL MESSAGES TO HTML
     // const messages = await Message.find({ sessionId: chatSession._id });

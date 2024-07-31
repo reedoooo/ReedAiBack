@@ -15,5 +15,6 @@ router.put('/:userId/profile/update', userController.updateUserProfile);
 
 router.post('/upload-profile-image/:userId', upload.single('image'), userController.uploadProfileImage);
 router.get('/profile-image/:userId', userController.getProfileImage);
+router.get('/refresh-token', userController.refreshToken);
 
 module.exports = router;

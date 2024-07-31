@@ -2,23 +2,12 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcrypt');
-const { logger } = require('../../config');
+const logger = require('../../config/logging');
 require('dotenv').config();
 const userService = require('./service');
-const {
-  User,
-  Workspace,
-  Folder,
-  File,
-  ChatSession,
-  Message,
-  Prompt,
-  Collection,
-  Model,
-  Preset,
-  Assistant,
-  Tool,
-} = require('../../models');
+const { User, Folder } = require('../../models');
+const passport = require('passport');
+// const { revokeToken } = require('../../utils');
 const {
   createWorkspace,
   createFolder,
@@ -157,6 +146,14 @@ const checkDuplicate = async (Model, query) => {
   const existingItem = await Model.findOne(query);
   return existingItem ? existingItem : null;
 };
+// Helper function to generate tokens
+const generateTokens = user => {
+  const payload = { userId: user._id };
+  const expiresIn = 60 * 60 * 24; // 24 hours
+  const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn });
+  const refreshToken = jwt.sign({ userId: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn });
+  return { accessToken, refreshToken, expiresIn };
+};
 const registerUser = async (req, res) => {
   try {
     logger.info(`${JSON.stringify(req.body)}`, req.body);
@@ -224,8 +221,7 @@ const registerUser = async (req, res) => {
 
     logger.info(`User registered: ${user.username}`);
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
+    const { accessToken, refreshToken, expiresIn } = generateTokens(user);
     const populatedUser = await User.findById(user._id).populate([
       'workspaces',
       'assistants',
@@ -237,22 +233,16 @@ const registerUser = async (req, res) => {
       'models',
       'tools',
       'presets',
-      // 'chatFiles',
-      // 'collectionFiles',
-      // 'homeWorkspace',
-      // 'workspaces',
-      // 'assistantWorkspaces',
-      // 'promptWorkspaces',
-      // 'fileWorkspaces',
-      // 'collectionWorkspaces',
-      // 'modelWorkspaces',
-      // 'toolWorkspaces',
-      // 'presetWorkspaces',
-      // 'assistantFiles',
-      // 'messageFileItems',
     ]);
 
-    res.status(201).json({ token, userId: user._id, message: 'User registered successfully', user: populatedUser });
+    res.status(201).json({
+      accessToken,
+      refreshToken,
+      expiresIn,
+      userId: user._id,
+      message: 'User registered successfully',
+      user: populatedUser,
+    });
   } catch (error) {
     logger.error(`Error registering user: ${error.message}`);
     logger.error(`Error Stack: ${error.stack}`);
@@ -273,11 +263,12 @@ const registerUser = async (req, res) => {
     }
   }
 };
-const loginUser = async (req, res) => {
+
+const loginUser = async (req, res, next) => {
   try {
     const { usernameOrEmail, password } = req.body;
     const query = usernameOrEmail.includes('@') ? { email: usernameOrEmail } : { username: usernameOrEmail };
-    const user = await User.findOne(query);
+    let user = await User.findOne(query);
     if (!user) {
       throw new Error('User not found');
     }
@@ -289,13 +280,27 @@ const loginUser = async (req, res) => {
       throw new Error('Invalid password');
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const expiresIn = 60 * 60 * 2; // 2 hours
+    const accessToken = jwt.sign({
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+    }, process.env.JWT_SECRET, { expiresIn });
+    const refreshToken = jwt.sign({
+      userId: user._id,
+    }, process.env.JWT_REFRESH_SECRET, { expiresIn });
+    user.authSession = {
+      token: accessToken,
+      tokenType: 'Bearer',
+      accessToken,
+      refreshToken,
+      expiresIn,
+      expiresAt: Date.now() + expiresIn * 1000,
+      createdAt: new Date(),
+    }
 
+    await user.save();
     logger.info(`User logged in: ${user.email}`);
-    // return res.cookie('token', token, {
-    //   httpOnly: true,
-    // });
-    // res.cookie('jwt', token, { httpOnly: true });
     const populatedUser = await User.findById(user._id).populate([
       'workspaces',
       'assistants',
@@ -308,7 +313,9 @@ const loginUser = async (req, res) => {
       'tools',
       'presets',
     ]);
-    res.status(200).json({ token, userId: user._id, message: 'Logged in successfully', user: populatedUser });
+    res
+      .status(200)
+      .json({ accessToken, refreshToken, expiresIn, userId: user._id, message: 'Logged in successfully', user: populatedUser });
   } catch (error) {
     logger.error(`Error logging in: ${error.message}`);
     res.status(500).json({ message: 'Error logging in', error: error.message });
@@ -317,8 +324,28 @@ const loginUser = async (req, res) => {
 
 const logoutUser = async (req, res) => {
   try {
-    await userService.logoutUser(req.token);
-    logger.info(`User logged out: ${req.token?.username}`);
+    // Check if there's a token in the request
+    if (!req.token) {
+      return res.status(400).json({ message: 'No active session found' });
+    }
+
+    // Revoke the token
+    // This assumes you have a function to blacklist or invalidate tokens
+    // If you're using JWT, you might add the token to a blacklist in your database
+    await revokeToken(req.token);
+
+    // Clear any session data if you're using sessions
+    if (req.session) {
+      req.session.destroy();
+    }
+
+    // Clear the token cookie if you're using cookie-based authentication
+    res.clearCookie('token');
+
+    // Log the logout action
+    logger.info(`User logged out: ${req.token.username}`);
+
+    // Send successful response
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
     logger.error(`Error logging out: ${error.message}`);
@@ -333,7 +360,10 @@ const validateToken = async (req, res) => {
       return res.status(401).send('No token provided');
     }
 
-    await userService.validateToken(token);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded) {
+      return res.status(401).send('Invalid token');
+    }
     res.send('Token is valid');
   } catch (error) {
     res.status(401).send(error.message);
@@ -363,11 +393,33 @@ const getProfileImage = async (req, res) => {
 
 const updateUserProfile = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const updatedUser = await userService.updateUserProfile(userId, req.body);
+    const { userId, updatedData } = req.params;
+    Object.assign(req.user.profile, updatedData);
+
     res.status(200).json({ user: updatedUser });
   } catch (error) {
     res.status(500).send('Error updating user profile: ' + error.message);
+  }
+};
+
+const refreshToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(401).json({ message: 'Refresh token is required' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const { accessToken, refreshToken, expiresIn } = generateTokens(user);
+    res.status(200).json({ accessToken, refreshToken, expiresIn });
+  } catch (error) {
+    logger.error(`Error refreshing token: ${error.message}`);
+    res.status(401).json({ message: 'Invalid token', error: error.message });
   }
 };
 
@@ -379,4 +431,5 @@ module.exports = {
   uploadProfileImage,
   getProfileImage,
   updateUserProfile,
+  refreshToken,
 };

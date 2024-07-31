@@ -6,11 +6,6 @@ const path = require('path');
 const { User } = require('../../models');
 require('dotenv').config();
 
-const logoutUser = async token => {
-  // Perform logout logic here if needed
-  return true;
-};
-
 const validateToken = token => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -63,7 +58,7 @@ const updateUserProfile = async (userId, updatedData) => {
 module.exports = {
   // registerUser,
   // loginUser,
-  logoutUser,
+  // logoutUser,
   validateToken,
   uploadProfileImage,
   getProfileImage,
