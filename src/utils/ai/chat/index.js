@@ -6,4 +6,6 @@ module.exports = {
   ...require('./files'),
   ...require('./main'),
   ...require('./prompt'),
+  ...require('./streaming'),
+  ...require('./context'),
 };

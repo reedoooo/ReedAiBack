@@ -10,6 +10,7 @@ router.delete('/:name', controller.deleteFile);
 router.get('/:name', controller.getFile);
 router.get('/download/:filename', controller.getDownloads);
 router.get('/static/chatgpt-prompts-custom.json', controller.downloadCustomPrompts);
+router.get('/static/:filename', controller.getFileByType);
 router.get('/static-files', controller.getAllStaticJsonFiles);
 router.get('/add/prompt', controller.addCustomPrompt);
 

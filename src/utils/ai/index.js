@@ -2,6 +2,8 @@ module.exports = {
   ...require('./chat'),
   ...require('./openAi'),
   ...require('./pinecone'),
+  ...require('./mongodb'),
+  ...require('./functions'),
 };
 
 // module.exports = './chat';

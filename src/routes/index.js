@@ -1,6 +1,5 @@
 // routes/index.js
 const systemFilesRoutes = require('./files/systemFiles.jsx');
-const userRoutes = require('./user');
 const {
   chatStreamRoutes,
   filesRoutes,
@@ -15,21 +14,43 @@ const {
   chatCollectionRoutes,
   chatAssistantRoutes,
   chatToolsRoutes,
-} = require('./chat/index.jsx');
-
+} = require('./chat/index.js');
+const { userBaseRoutes, userOpenAiRoutes } = require('./user/index.js');
+// const swaggerJSDoc = require('swagger-jsdoc');
+// const swaggerUi = require('swagger-ui-express');
 const setupRoutes = app => {
+  //   const options = {
+  //     definition: {
+  //       openapi: '3.0.0',
+  //       info: {
+  //         title: 'ReedAi API',
+  //         version: '1.0.0',
+  //         description:
+  //           'A node.js API for ReedAi: AI chat and chatbot for generating unique styled components and practical coding utilities',
+  //       },
+  //       servers: [
+  //         {
+  //           url: 'http://localhost:3001',
+  //         },
+  //       ],
+  //     },
+  //     apis: ['./routes/**/*.js', './routes/**/*.jsx'], // Path to the API docs
+  //   };
 
-  app.use('/api/user', userRoutes);
+  //   const specs = swaggerJSDoc(options);
+  //   app.use('/api/api-docs', swaggerUi.serve(swaggerUi.setup(specs)));
+  app.use('/api/user', userBaseRoutes);
+  app.use('/api/user', userOpenAiRoutes);
   app.use('/api/files', systemFilesRoutes);
-  app.use('/api/chat/v1', chatStreamRoutes); // <-- This is actually the current main chat route and also handles the streaming
+  app.use('/api/chat/chatFiles', chatFilesRoutes);
   app.use('/api/chat/files', filesRoutes);
+  app.use('/api/chat/v1', chatStreamRoutes); // <-- This is actually the current main chat route and also handles the streaming
   app.use('/api/chat/workspaces', workspaceRoutes);
   app.use('/api/chat/sessions', chatSessionRoutes);
   app.use('/api/chat/tools', chatToolsRoutes);
   app.use('/api/chat/presets', chatPresetsRoutes);
   app.use('/api/chat/messages', chatMessageRoutes);
   app.use('/api/chat/models', chatModelRoutes);
-  app.use('/api/chat/chatFiles', chatFilesRoutes);
   app.use('/api/chat/prompts', chatPromptRoutes);
   app.use('/api/chat/folders', chatFolderRoutes);
   app.use('/api/chat/collections', chatCollectionRoutes);

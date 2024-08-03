@@ -11,7 +11,7 @@ package-lock.json
 # Ignore the ignore directory
 /ignore
 # Ignore logs
-/src/config/logging/logs
+/src/config/logging
 
 # Ignore the node_modules directory
 /node_modules

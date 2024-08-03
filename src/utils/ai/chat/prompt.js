@@ -1,4 +1,5 @@
 const { encode } = require('gpt-tokenizer');
+const { PromptTemplate } = require('@langchain/core/prompts');
 
 const systemAssistantPrompts = {
   chat: data => {
@@ -494,6 +495,7 @@ function buildRetrievalText(fileItems) {
 
   return `You may use the following sources if needed to answer the user's question. If you don't know the answer, say "I don't know."\n\n${retrievalText}`;
 }
+
 const createSystemPromptB = () => {
   return `
   Use the following guide to format messages using Markdown syntax. This includes headings, text formatting, lists, links, images, blockquotes, code blocks, and more. Ensure to apply the appropriate syntax for the desired formatting. Please return final response JSON: { "content": "Your Markdown formatted message", "type": "markdown" }.
@@ -666,57 +668,25 @@ const createSystemPromptB = () => {
 
   Special Characters: Of course, there's a whole set of Characters which can be used in formatting, like [brackets], {curly brackets}, \backslashes, <angle brackets>, and so much more!
 
+    Mermaid Diagrams:
+  - Mermaid diagrams can be used to create flowcharts, sequence diagrams, class diagrams, and more using the mermaid syntax.
+  - To include a Mermaid diagram, use the following format:
+  \`\`\`mermaid
+  diagram_type
+  diagram_code
+  \`\`\`
+  - Example: To create a flowchart, you can use:
+  \`\`\`mermaid
+  graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+  \`\`\`
+  This will render a simple flowchart with nodes A, B, C, and D.
   Now, with all the markdowns I've provided, use these to create a [Type of Content Here]; maintaining the markdowns provided.
   `;
 };
-// const createSystemPromptB = () => {
-//   return `
-//   Please generate a structured JSON response with the following format:
-
-//   PURPOSE:
-//   - Ensure a flawless and well-organized layout for a chat response containing all necessary sections for all content types a chatbot AI response may offer.
-
-//   INSTRUCTIONS:
-//   - MAIN STRUCTURE:
-//     - \`type\`: Always set to "json".
-//     - \`data\`: An object containing the \`pageLayout\` and \`metadata\` properties.
-
-//   - PAGE LAYOUT (data.pageLayout):
-//     - A JSON string representing the entire response layout in Markdown format.
-//     - Use double quotes for all attribute values.
-//     - Avoid unnecessary escaping of characters.
-
-//   - MARKDOWN ELEMENTS:
-//     - Use Markdown syntax for headings, paragraphs, blockquotes, links, images, code blocks, lists, and tables.
-//     - Attributes:
-//       - Links (\`[text](url)\`): Provide the URL in parentheses.
-//       - Images (\`![alt text](url)\`): Include alt text and image URL.
-//       - Code blocks (\`\`\`language\ncode\n\`\`\`): Use backticks for inline code and triple backticks for code blocks.
-
-//   - ADDITIONAL GUIDELINES:
-//     - Ensure the response is highly organized and well-structured.
-//     - Use \`#\` for main titles summarizing the user's prompt.
-//     - Use \`##\` for secondary headings providing an overview.
-//     - Use plain text for main content.
-//     - Use \`>\` for blockquotes highlighting key points.
-//     - Use links and images as necessary.
-//     - Use backticks for inline code and triple backticks for code blocks.
-//     - Use \`-\` or \`*\` for unordered lists and numbers for ordered lists.
-
-//   Example:
-//   {
-//     "type": "json",
-//     "data": {
-//       "pageLayout": "# Response Title\\n## Response Overview\\nThis is the main content of the response.\\n> This is a quote.\\n[Link](https://example.com)\\n![Image Description](image_url)\\n\\\`\`\`javascript\\n// code snippet\\n\\\`\`\`\\n- Item 1\\n- Item 2\\n1. Item 1\\n2. Item 2\\n| Header 1 | Header 2 |\\n| -------- | -------- |\\n| Row 1, Col 1 | Row 1, Col 2 |",
-//       "metadata": {
-//         "timestamp": "2024-07-26T12:00:00Z",
-//         "content_length": 300,
-//         "content_type": "application/json"
-//       }
-//     }
-//   }
-//   `;
-// };
 
 const createSystemPromptA = () => {
   return `You are a helpful AI assistant. Create an absolutely consistent JSON response format for the chat bot app server stream response endpoint. Ensure specific structures are followed for different file types such as code, markdown, text, etc. The response must include the following components:
@@ -765,6 +735,26 @@ Example JSON response:
 `;
 };
 
+const buildPromptFromTemplate = async (summary, prompt) => {
+  try {
+    const tempObj = {
+      input: `Please respond to the following prompt: ${prompt}`,
+    };
+    const promptTemplate = new PromptTemplate({
+      template: tempObj.input,
+      inputVariables: ['summary', 'prompt'],
+    });
+    return promptTemplate.format();
+  } catch (error) {
+    throw new Error(`Error building prompt from template: ${error.message}`);
+  }
+};
+
+function isCodeRelated(summary) {
+  const codeKeywords = ['code', 'program', 'function', 'variable', 'syntax', 'algorithm'];
+  return codeKeywords.some(keyword => summary.includes(keyword));
+}
+
 module.exports = {
   systemAssistantPrompts,
   userPrompts,
@@ -772,6 +762,8 @@ module.exports = {
   buildFinalMessages,
   createSystemPromptA,
   createSystemPromptB,
+  buildPromptFromTemplate,
+  isCodeRelated,
 };
 // "sections": {
 //   "1": "<h1 id={1} className='h1'>Response Title</h1>"

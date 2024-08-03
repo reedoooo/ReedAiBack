@@ -11,15 +11,93 @@ const {
 } = require('../../controllers/index.js');
 const router = express.Router();
 
-router.use(authenticate);
+/**
+ * @swagger
+ * tags:
+ *   name: Sessions
+ *   description: API to manage sessions.
+ */
 
+/**
+ * @swagger
+ * /sessions:
+ *   get:
+ *     summary: Get all sessions
+ *     tags: [Sessions]
+ *     responses:
+ *       200:
+ *         description: List of all sessions
+ */
+
+/**
+ * @swagger
+ * /sessions/{id}:
+ *   get:
+ *     summary: Get a session by ID
+ *     tags: [Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session details
+ */
+
+/**
+ * @swagger
+ * /sessions:
+ *   post:
+ *     summary: Create a new session
+ *     tags: [Sessions]
+ *     responses:
+ *       201:
+ *         description: Session created
+ */
+
+/**
+ * @swagger
+ * /sessions/{id}:
+ *   delete:
+ *     summary: Delete a session by ID
+ *     tags: [Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Session deleted
+ */
+
+/**
+ * @swagger
+ * /sessions/{id}/messages/save:
+ *   post:
+ *     summary: Save messages to a session
+ *     tags: [Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Messages saved
+ */
+
+// Define routes and handlers here
+router.use(authenticate);
 router.get('/', asyncHandler(getAllSessions));
 router.get('/:id', asyncHandler(getSessionById));
 router.post('/', asyncHandler(createSession));
 router.put('/:id', asyncHandler(updateSession));
 router.delete('/:id', asyncHandler(deleteSession));
-
-// Messages
 router.post(
   '/session',
   asyncHandler(async (req, res) => {

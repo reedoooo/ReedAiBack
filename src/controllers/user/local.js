@@ -4,7 +4,6 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const logger = require('../../config/logging');
 require('dotenv').config();
-const userService = require('./service');
 const { User, Folder } = require('../../models');
 const passport = require('passport');
 // const { revokeToken } = require('../../utils');
@@ -374,7 +373,7 @@ const uploadProfileImage = async (req, res) => {
   try {
     const { userId } = req.params;
     const imagePath = req.file.path;
-    await userService.uploadProfileImage(userId, imagePath);
+    await uploadProfileImage(userId, imagePath);
     res.status(200).send({ imagePath });
   } catch (error) {
     res.status(500).send('Error uploading image: ' + error.message);
@@ -384,7 +383,7 @@ const uploadProfileImage = async (req, res) => {
 const getProfileImage = async (req, res) => {
   try {
     const { userId } = req.params;
-    const imagePath = await userService.getProfileImage(userId);
+    const imagePath = await getProfileImage(userId);
     res.sendFile(imagePath);
   } catch (error) {
     res.status(500).send('Error retrieving image: ' + error.message);

@@ -15,6 +15,9 @@ const LocalStrategy = require('passport-local').Strategy;
 const { getDB } = require('../db');
 const { User } = require('../models');
 const MongoStore = require('connect-mongo');
+// require('swagger-ui-express');
+// require('swagger-jsdoc');
+
 /**
  * Configures and applies middlewares to the Express application.
  *

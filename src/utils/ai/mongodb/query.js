@@ -1,4 +1,4 @@
-export async function getVectorSearchResults(collection, vectorEmbedding, filterQuery) {
+const getVectorSearchResults = async (collection, vectorEmbedding, filterQuery) => {
   return collection
     .aggregate([
       {
@@ -21,4 +21,8 @@ export async function getVectorSearchResults(collection, vectorEmbedding, filter
       { $match: { score: { $gte: 0.8 } } },
     ])
     .toArray();
-}
+};
+
+module.exports = {
+  getVectorSearchResults,
+};
