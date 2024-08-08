@@ -5,7 +5,18 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const { morganMiddleware } = require('./morganMiddleware');
+const { unifiedErrorHandler } = require('./unifiedErrorHandler');
 const path = require('path');
+const session = require('express-session');
+const { db } = require('../config/env');
+
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const { getDB } = require('../db');
+const { User } = require('../models');
+const MongoStore = require('connect-mongo');
+// require('swagger-ui-express');
+// require('swagger-jsdoc');
 
 /**
  * Configures and applies middlewares to the Express application.
@@ -48,16 +59,75 @@ const middlewares = app => {
   };
   app.use(cors(corsOptions));
 
-  // Serve static files from the 'public' directory
+  // Configure session management with MongoDB store
+  // app.use(
+  //   session({
+  //     secret: process.env.SESSION_SECRET,
+  //     resave: false,
+  //     saveUninitialized: false,
+  //     store: new MongoStore({ mongooseConnection: require('./db') }),
+  //     cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }, // 7 days
+  //   })
+  // );
+  // Session configuration
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: true,
+      store: new MongoStore({
+        mongoUrl: db,
+        ttl: 1000 * 60 * 60 * 24, // 1 day
+      }),
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24, // 1 day
+      },
+    })
+  );
+
+  // Passport configuration
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  passport.use(
+    new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
+      try {
+        const user = await User.findOne({ email });
+        if (!user) {
+          return done(null, false, { message: 'Incorrect email or password' });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          return done(null, false, { message: 'Incorrect email or password' });
+        }
+        return done(null, user);
+      } catch (error) {
+        return done(error);
+      }
+    })
+  );
+
+  passport.serializeUser((user, done) => {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id, done) => {
+    try {
+      const user = await User.findById(id);
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
+  });
+
+  // Serve static files
   const publicDir = path.join(__dirname, '../../public');
   app.use(express.static(publicDir));
-  app.use('/static', cors(corsOptions), express.static(path.join(publicDir, 'static')));
-  app.use('/static/uploads', cors(corsOptions), express.static(path.join(publicDir, 'static/uploads')));
-  app.use('/static/downloads', cors(corsOptions), express.static(path.join(publicDir, 'static/downloads')));
-  app.use('/static/files', cors(corsOptions), express.static(path.join(publicDir, 'static/files')));
-  app.use('/static/generated', cors(corsOptions), express.static(path.join(publicDir, 'static/generated')));
-  // app.use('/images', express.static(path.join(publicDir, 'images')));
-  // app.use('/fonts', express.static(path.join(publicDir, 'fonts')));
+
+  const staticDirs = ['static', 'uploads', 'downloads', 'files', 'generated'];
+  staticDirs.forEach(dir => {
+    app.use(`/static/${dir}`, cors(corsOptions), express.static(path.join(publicDir, `static/${dir}`)));
+  });
 
   // Endpoint to serve service-worker.js
   app.get('/service-worker.js', cors(corsOptions), (req, res) => {
@@ -65,7 +135,7 @@ const middlewares = app => {
   });
 
   // Middleware for handling Server-Sent Events
-  app.use((req, res, next) => {
+  app.use(async (req, res, next) => {
     if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -84,6 +154,8 @@ const middlewares = app => {
       max: 100, // limit each IP to 100 requests per window
     })
   );
+
+  app.use(unifiedErrorHandler);
 };
 
 module.exports = middlewares;

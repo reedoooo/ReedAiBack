@@ -1,7 +1,6 @@
-const userController = require('./controller');
-const userService = require('./service');
-
 module.exports = {
-	userController,
-	userService,
+  ...require('./local'),
+  ...require('./openAi'),
+  ...require('./service'),
 };
+

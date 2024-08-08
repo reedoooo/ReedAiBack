@@ -23,18 +23,10 @@ const unifiedErrorHandler = (err, req, res, next) => {
     logger.warn(`[HEADERS SENT] ${res.headersSent}`);
     return next(err);
   };
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return next(new Error('File size limit exceeded (max: 5MB).'));
-    }
-    if (err.code === 'LIMIT_FILE_COUNT') {
-      return next(new Error('Too many files (max: 5).'));
-    }
-    return next(err);
-  }
-  next(err);
+
   const message = err.message || 'Internal Server Error';
-  logger.error(`[ERROR] ${err.message}`);
+  logger.error(`[ERROR] ${message}`);
+  next(err);
   res.status(err.statusCode || 500).json({
     message,
     error: serializeError(err),

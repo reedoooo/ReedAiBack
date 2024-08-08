@@ -80,4 +80,11 @@ const GPT3_5Turbo = {
 };
 const OPENAI_LLM_LIST = [GPT4o, GPT4Turbo, GPT4Vision, GPT4, GPT3_5Turbo];
 
-module.exports = { OPENAI_LLM_LIST };
+module.exports = {
+  OPENAI_LLM_LIST,
+  GPT4o,
+  GPT4Turbo,
+  GPT4Vision,
+  GPT4,
+  GPT3_5Turbo,
+ };

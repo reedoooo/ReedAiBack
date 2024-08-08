@@ -13,17 +13,22 @@ const {
   Tool,
   JwtSecret,
 } = require('../../models'); // Adjust the path as needed
+const { createSystemPromptB } = require('../../utils/ai/chat');
 const createWorkspace = async user => {
   const workspaceData = {
     userId: user._id,
     chatSessions: [],
     folders: [],
-    name: 'Default Workspace',
-    description: 'Default workspace for the user',
-    imagePath: '',
+
+    name: 'Home Workspace',
+    description: 'Home workspace for the user',
+    imagePath: 'http://localhost:3001/static/files/avatar3.png',
+    active: true,
+
     defaultContextLength: 4000,
     defaultModel: 'gpt-4-turbo-preview',
-    defaultPrompt: '',
+    defaultSystemPrompt: createSystemPromptB(),
+    defaultSystemPrompt: createSystemPromptB(),
     defaultTemperature: 0.7,
     embeddingsProvider: 'openai',
     instructions: '',

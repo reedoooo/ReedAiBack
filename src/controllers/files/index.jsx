@@ -118,6 +118,34 @@ const downloadCustomPrompts = (req, res) => {
   });
 };
 
+const getFileByType = (req, res) => {
+  const { type } = req.params;
+  const directoryPath = path.join(__dirname, '../../../public/static/files');
+
+  fs.readdir(directoryPath, (err, files) => {
+    if (err) {
+      console.error('Unable to scan files:', err);
+      return res.status(500).send({
+        message: 'Unable to scan files!',
+      });
+    }
+
+    if (!files || files.length === 0) {
+      return res.status(200).send([]);
+    }
+
+    const filteredFiles = files.filter(file => path.extname(file).slice(1) === type);
+    const fileInfos = filteredFiles.map(file => ({
+      name: file,
+      url: baseUrl + file,
+      type: path.extname(file).slice(1),
+      data: fs.readFileSync(path.join(directoryPath, file), 'utf8'),
+    }));
+
+    res.status(200).send(fileInfos);
+  });
+};
+
 // Endpoint to get all JSON files from the static directory
 const getAllStaticJsonFiles = (req, res) => {
   const staticDir = path.join(__dirname, '../../../public/static');
@@ -188,4 +216,5 @@ module.exports = {
   getAllStaticJsonFiles,
   addCustomPrompt,
   getAllPngFiles,
+  getFileByType,
 };

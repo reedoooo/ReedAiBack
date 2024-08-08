@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
-const { Schema, model } = mongoose;
+const { Schema } = mongoose;
 const bcrypt = require('bcrypt');
 const path = require('path');
 const { createSchema, createModel } = require('./utils/schema');
 const profileImagePath = path.join(__dirname, '../../public/files/avatar1.png');
-const Json = Schema.Types.Mixed;
+const passportLocalMongoose = require('passport-local-mongoose');
+
 // =============================
 // [USER]
 // =============================
@@ -48,7 +49,6 @@ const profileSchema = new Schema(
     bio: { type: String },
     displayName: { type: String },
     hasOnboarded: { type: Boolean, default: false },
-    // messages: { type: Array, default: [] },
     identity: identitySchema,
     openai: openAiSchema,
     stats: {
@@ -155,8 +155,9 @@ const userSchema = new Schema(
     email: { type: String, unique: true, lowercase: true, trim: true, required: false, index: true },
     firstName: { type: String },
     lastName: { type: String },
-    dateJoined: { type: Date, default: Date.now },
     isActive: { type: Boolean, default: true },
+    dateJoined: { type: Date, default: Date.now },
+    hasOnboarded: { type: Boolean, default: false },
 
     // Authentication Information
     auth: authSchema,
@@ -173,13 +174,13 @@ const userSchema = new Schema(
 
     // Workspace Relationships
     workspaces: [{ type: Schema.Types.ObjectId, ref: 'Workspace', default: [] }],
+    chatSessions: [{ type: Schema.Types.ObjectId, ref: 'ChatSession', default: [] }],
+    folders: [{ type: Schema.Types.ObjectId, ref: 'Folder', default: [] }],
     // Assistant and Prompts
     assistants: [{ type: Schema.Types.ObjectId, ref: 'Assistant', default: [] }],
     prompts: [{ type: Schema.Types.ObjectId, ref: 'Prompt', default: [] }],
-    chatSessions: [{ type: Schema.Types.ObjectId, ref: 'ChatSession', default: [] }],
 
     // File and Collection Relationships
-    folders: [{ type: Schema.Types.ObjectId, ref: 'Folder', default: [] }],
     files: [{ type: Schema.Types.ObjectId, ref: 'File', default: [] }],
     collections: [{ type: Schema.Types.ObjectId, ref: 'Collection', default: [] }],
     models: [{ type: Schema.Types.ObjectId, ref: 'Model', default: [] }],
@@ -190,10 +191,10 @@ const userSchema = new Schema(
     timestamps: true,
   }
 );
+userSchema.plugin(passportLocalMongoose);
 
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ username: 1 }, { unique: true });
-
 // =============================
 // [WORKSPACES]
 //  - The workspace schema is used to store information workspaces in the chat.
@@ -205,16 +206,89 @@ userSchema.index({ username: 1 }, { unique: true });
 const workspaceSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   chatSessions: [{ type: Schema.Types.ObjectId, ref: 'ChatSession' }],
+  activeChatSession: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
   folders: [{ type: Schema.Types.ObjectId, ref: 'Folder' }],
-
+  defaultPreset: {
+    type: Schema.Types.ObjectId,
+    ref: 'Preset',
+    default: {
+      name: 'Default Preset',
+      description: 'A default preset.',
+      contextLength: 15,
+      model: 'gpt-4-1106-preview',
+      prompt: 'A default prompt.',
+      temperature: 0.7,
+      embeddingsProvider: 'openai',
+      includeProfileContext: true,
+      includeWorkspaceInstructions: true,
+      sharing: 'private',
+    },
+  },
+  defaultTool: {
+    type: Schema.Types.ObjectId,
+    ref: 'Tool',
+    default: {
+      name: 'Default Tool',
+      description: 'A default tool.',
+      instructions: 'A default tool.',
+      sharing: 'private',
+    },
+  },
+  defaultModel: {
+    type: Schema.Types.ObjectId,
+    ref: 'Model',
+    default: {
+      name: 'Default Model',
+      description: 'A default model.',
+      contextLength: 15,
+      maxToken: 500,
+      defaultToken: 100,
+      isDefault: true,
+    },
+  },
+  defaultPrompt: {
+    type: Schema.Types.ObjectId,
+    ref: 'Prompt',
+    default: {
+      name: 'Default Prompt',
+      content: 'A default prompt.',
+      sharing: 'private',
+    },
+  },
+  defaultCollection: {
+    type: Schema.Types.ObjectId,
+    ref: 'Collection',
+    default: {
+      name: 'Default Collection',
+      description: 'A default collection.',
+      sharing: 'private',
+    },
+  },
+  defaultFile: {
+    type: Schema.Types.ObjectId,
+    ref: 'File',
+    default: {
+      name: 'Default File',
+      description: 'A default file.',
+      sharing: 'private',
+    },
+  },
+  defaultAssistant: {
+    type: Schema.Types.ObjectId,
+    ref: 'Assistant',
+    default: {
+      name: 'Default Assistant',
+      description: 'A default assistant.',
+      instructions: 'A default assistant.',
+      sharing: 'private',
+    },
+  },
   name: { type: String, required: false },
   description: { type: String },
   imagePath: { type: String },
   active: { type: Boolean, default: false },
 
   defaultContextLength: { type: Number },
-  defaultModel: { type: String },
-  defaultPrompt: { type: String },
   defaultTemperature: { type: Number },
 
   embeddingsProvider: { type: String },
@@ -224,15 +298,15 @@ const workspaceSchema = createSchema({
   includeWorkspaceInstructions: { type: Boolean },
   isHome: { type: Boolean, default: false },
 
-  // CONSTANT SPACES
   type: {
     type: String,
     required: false,
     enum: ['profile', 'workspace', 'assistant', 'collection', 'model', 'tool', 'preset'],
   },
 });
+
 // =============================
-// [FOLDERS]
+// [FOLDERS] name, workspaceId
 // =============================
 const folderSchema = createSchema({
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
@@ -274,189 +348,15 @@ const folderSchema = createSchema({
   },
 });
 // =============================
-// [FILES]
-// =============================
-const fileSchema = createSchema({
-  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
-  name: { type: String, required: false },
-  description: { type: String, required: false },
-  filePath: String,
-  data: { type: Buffer, required: false },
-  size: { type: Number, required: false },
-  tokens: { type: Number, required: false },
-  type: {
-    type: String,
-    required: false,
-    enum: ['txt', 'pdf', 'doc', 'docx', 'md', 'html', 'json', 'csv'],
-  },
-  sharing: { type: String },
-  mimeType: { type: String, required: false },
-  metadata: {
-    fileSize: Number,
-    fileType: String,
-    lastModified: Date,
-  },
-});
-const fileWorkspaceSchema = createSchema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-});
-const assistantFileSchema = createSchema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
-  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
-});
-const chatFileSchema = createSchema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
-  sessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
-});
-const collectionFileSchema = createSchema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
-  collectionId: { type: Schema.Types.ObjectId, ref: 'Collection' },
-});
-const messageFileItemSchema = createSchema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  fileItemId: { type: Schema.Types.ObjectId, ref: 'FileItem' },
-  messageId: { type: Schema.Types.ObjectId, ref: 'Message' },
-});
-const fileItemSchema = createSchema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
-  content: { type: String, required: false },
-  tokens: { type: Number, required: false },
-  localEmbedding: String,
-  openaiEmbedding: String,
-  sharing: String,
-});
-// =============================
-// [MESSAGES]
-// =============================
-const messageSchema = createSchema({
-  sessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
-  type: String,
-  data: {
-    content: String,
-    additional_kwargs: {},
-  },
-  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  messageId: { type: String, required: false },
-  conversationId: { type: String, required: false },
-  content: { type: String, required: false },
-  role: {
-    type: String,
-    required: false,
-    enum: ['system', 'user', 'assistant', 'function', 'tool'],
-  },
-  tokens: { type: Number, required: false },
-  localEmbedding: String,
-  openaiEmbedding: String,
-  sharing: String,
-  sequenceNumber: Number,
-  metadata: { type: Map, of: Schema.Types.Mixed, default: {} },
-});
-
-// =============================
-// [CHATS]
-// =============================
-const userActiveChatSessionSchema = createSchema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  chatSessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
-});
-const chatSessionSchema = createSchema({
-  name: { type: String, required: false },
-  topic: { type: String, required: false },
-
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
-  model: { type: String, required: false },
-  prompt: { type: String, required: false },
-
-  active: { type: Boolean, required: false },
-  activeSessionId: { type: Schema.Types.ObjectId, ref: 'UserActiveChatSession' },
-
-  settings: {
-    type: Map,
-    of: Schema.Types.Mixed,
-    default: {
-      contextCount: 15,
-      maxTokens: 500, // max length of the completion
-      temperature: 0.7,
-      model: 'gpt-4-1106-preview',
-      topP: 1,
-      n: 4,
-      debug: false,
-      summarizeMode: false,
-    },
-  },
-
-  messages: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: 'ChatMessage',
-    },
-  ],
-
-  stats: {
-    tokenUsage: { type: Number, default: 0 },
-    messageCount: { type: Number, default: 0 },
-  },
-
-  tuning: {
-    type: Map,
-    of: Schema.Types.Mixed,
-    default: {
-      debug: { type: Boolean, required: false },
-      summary: { type: String, required: false },
-      summarizeMode: { type: Boolean, required: false },
-    },
-  },
-});
-chatSessionSchema.index({ userId: 1, workspaceId: 1, name: 1 }, { unique: true });
-
-chatSessionSchema.pre('save', async function(next) {
-  this.updatedAt = Date.now();
-
-  if (this.isNew) {
-    let uniqueName = this.name;
-    let counter = 1;
-    const originalName = this.name;
-
-    while (true) {
-      try {
-        const existingSession = await this.constructor.findOne({
-          userId: this.userId,
-          workspaceId: this.workspaceId,
-          name: uniqueName
-        });
-
-        if (!existingSession) {
-          this.name = uniqueName;
-          break;
-        }
-
-        uniqueName = `${originalName} (${counter})`;
-        counter++;
-      } catch (error) {
-        return next(error);
-      }
-    }
-  }
-
-  next();
-});
-// =============================
-// [PROMPTS]
+// [PROMPTS] createdBy, name, role, content, description, tags
 // =============================
 const promptSchema = createSchema({
-  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  content: String,
+  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   name: String,
+  role: String,
+  content: String,
+  description: String,
   sharing: String,
   key: String,
   value: String,
@@ -480,26 +380,247 @@ promptSchema.pre('save', function (next) {
   this.value = this.content;
   next();
 });
-const promptWorkspaceSchema = createSchema({
-  promptId: { type: Schema.Types.ObjectId, ref: 'Prompt' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+// =============================
+// [MESSAGES] content, role, files, sessionId
+// =============================
+const messageSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  sessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
+  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
+  files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
+
+  content: { type: String, required: false },
+  role: {
+    type: String,
+    required: false,
+    enum: ['system', 'user', 'assistant', 'function', 'tool'],
+  },
+  type: String,
+  data: {
+    content: String,
+    additional_kwargs: {},
+  },
+  tokens: { type: Number, required: false },
+  localEmbedding: String,
+  openaiEmbedding: String,
+  sharing: String,
+  sequenceNumber: Number,
+  metadata: { type: Map, of: Schema.Types.Mixed, default: {} },
 });
-const collectionSchema = createSchema({
-  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
+// =============================
+// [FILES]
+// =============================
+const fileSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  name: String,
-  description: String,
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  sessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
+  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
+  messageId: { type: Schema.Types.ObjectId, ref: 'ChatMessage' },
+
+  name: { type: String, required: false },
+  description: { type: String, required: false },
+  filePath: String,
+  data: { type: Buffer, required: false },
+  size: { type: Number, required: false },
+  tokens: { type: Number, required: false },
+  type: {
+    type: String,
+    required: false,
+    enum: ['txt', 'pdf', 'doc', 'docx', 'md', 'html', 'json', 'csv', 'tsv', 'jsx', 'js', 'png', 'jpg', 'jpeg', 'gif'],
+  },
+  sharing: { type: String },
+  mimeType: { type: String, required: false },
+  metadata: {
+    fileSize: Number,
+    fileType: String,
+    lastModified: Date,
+  },
+});
+const assistantFileSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
+  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
+});
+const chatFileSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  sessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
+  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
+});
+const collectionFileSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
+  collectionId: { type: Schema.Types.ObjectId, ref: 'Collection' },
+});
+const messageFileItemSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  messageId: { type: Schema.Types.ObjectId, ref: 'ChatMessage' },
+  fileItemId: { type: Schema.Types.ObjectId, ref: 'FileItem' },
+});
+const fileItemSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
+  content: { type: String, required: false },
+  tokens: { type: Number, required: false },
+  localEmbedding: String,
+  openaiEmbedding: String,
   sharing: String,
 });
-const collectionWorkspaceSchema = createSchema({
+// =============================
+// [CHAT SESSIONS]
+// =============================
+const userActiveChatSessionSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  chatSessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
+});
+const chatSessionSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  activeSessionId: { type: Schema.Types.ObjectId, ref: 'UserActiveChatSession' },
+  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
+
+  systemPrompt: { type: Schema.Types.ObjectId, ref: 'Prompt' },
+  tools: [{ type: Schema.Types.ObjectId, ref: 'Tool' }],
+  messages: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'ChatMessage',
+    },
+  ],
+  files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
+
+  name: { type: String, required: false },
+  topic: { type: String, required: false },
+  active: { type: Boolean, required: false },
+  model: { type: String, required: false },
+  summary: { type: String, required: false },
+
+  stats: {
+    tokenUsage: { type: Number, default: 0 },
+    messageCount: { type: Number, default: 0 },
+  },
+  settings: {
+    type: Map,
+    of: Schema.Types.Mixed,
+    default: {
+      contextCount: 15,
+      maxTokens: 500, // max length of the completion
+      temperature: 0.7,
+      model: 'gpt-4-1106-preview',
+      topP: 1,
+      n: 4,
+      debug: false,
+      summarizeMode: false,
+    },
+  },
+  tuning: {
+    type: Map,
+    of: Schema.Types.Mixed,
+    default: {
+      debug: { type: Boolean, required: false },
+      summary: { type: String, required: false },
+      summarizeMode: { type: Boolean, required: false },
+    },
+  },
+});
+chatSessionSchema.index({ userId: 1, workspaceId: 1, name: 1 }, { unique: true });
+chatSessionSchema.pre('save', async function (next) {
+  this.updatedAt = Date.now();
+
+  if (this.isNew) {
+    let uniqueName = this.name;
+    let counter = 1;
+    const originalName = this.name;
+
+    while (true) {
+      try {
+        const existingSession = await this.constructor.findOne({
+          userId: this.userId,
+          workspaceId: this.workspaceId,
+          name: uniqueName,
+        });
+
+        if (!existingSession) {
+          this.name = uniqueName;
+          break;
+        }
+
+        uniqueName = `${originalName} (${counter})`;
+        counter++;
+      } catch (error) {
+        return next(error);
+      }
+    }
+  }
+
+  next();
+});
+// =============================
+// [TOOLS]
+// =============================
+const toolSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  sessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
+  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
+  name: String,
+  description: String,
+  url: String,
+  schema: Schema.Types.Mixed,
+  customHeaders: Schema.Types.Mixed,
+  sharing: String,
+});
+const assistantToolSchema = createSchema({
+  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
+  toolId: { type: Schema.Types.ObjectId, ref: 'Tool' },
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+});
+// ------------------------- //
+const workspaceFilesSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  fileId: { type: Schema.Types.ObjectId, ref: 'File' },
+});
+const workspacePromptSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  promptId: { type: Schema.Types.ObjectId, ref: 'Prompt' },
+});
+const workspaceCollectionSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   collectionId: { type: Schema.Types.ObjectId, ref: 'Collection' },
+});
+const workspaceModelSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  modelId: { type: Schema.Types.ObjectId, ref: 'Model' },
+});
+const workspacePresetsSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  presetId: { type: Schema.Types.ObjectId, ref: 'Preset' },
+});
+const workspaceAssistantSchema = createSchema({
+  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 });
-const modelSchema = createSchema({
-  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
+const workspaceToolSchema = createSchema({
+  toolId: { type: Schema.Types.ObjectId, ref: 'Tool' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
+});
+// =============================
+// [MODELS]
+// =============================
+const modelSchema = createSchema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   apiKey: { type: String, required: false },
   baseUrl: { type: String, required: false },
   modelId: { type: String, required: false },
@@ -519,13 +640,12 @@ const modelSchema = createSchema({
     default: false,
   },
 });
-const modelWorkspaceSchema = createSchema({
-  modelId: { type: Schema.Types.ObjectId, ref: 'Model' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-});
+// =============================
+// [PRESETS]
+// =============================
 const presetSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   name: { type: String, required: false },
   description: { type: String, required: false },
@@ -539,11 +659,9 @@ const presetSchema = createSchema({
   sharing: { type: String },
   temperature: { type: Number, required: false },
 });
-const presetWorkspaceSchema = createSchema({
-  presetId: { type: Schema.Types.ObjectId, ref: 'Preset' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-});
+// =============================
+// [ASSISTANTS]
+// =============================
 const assistantSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   name: { type: String, required: false },
@@ -569,54 +687,17 @@ const assistantSchema = createSchema({
 // =============================
 // [COLLECTIONS]
 // =============================
-const assistantCollectionSchema = createSchema({
-  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
-  collectionId: { type: Schema.Types.ObjectId, ref: 'Collection' },
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-});
-const assistantToolSchema = createSchema({
-  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
-  toolId: { type: Schema.Types.ObjectId, ref: 'Tool' },
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-});
-const assistantWorkspaceSchema = createSchema({
-  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-});
-const toolSchema = createSchema({
+const collectionSchema = createSchema({
   folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   name: String,
   description: String,
-  url: String,
-  schema: Schema.Types.Mixed,
-  customHeaders: Schema.Types.Mixed,
   sharing: String,
 });
-const toolWorkspaceSchema = createSchema({
-  toolId: { type: Schema.Types.ObjectId, ref: 'Tool' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
+const assistantCollectionSchema = createSchema({
+  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
+  collectionId: { type: Schema.Types.ObjectId, ref: 'Collection' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-});
-const objectSchema = createSchema({
-  bucketId: { type: Schema.Types.ObjectId, ref: 'Bucket' },
-  name: String,
-  owner: String,
-  ownerId: String,
-  metadata: Schema.Types.Mixed,
-  lastAccessedAt: Date,
-  version: String,
-  pathTokens: [String],
-});
-const bucketSchema = createSchema({
-  name: String,
-  public: Boolean,
-  fileSizeLimit: Number,
-  allowedMimeTypes: [String],
-  avifAutodetection: Boolean,
-  owner: String,
-  ownerId: String,
 });
 // =============================
 // [APP]
@@ -631,7 +712,6 @@ const schemas = {
   workspaceSchema,
   folderSchema,
   fileSchema,
-  fileWorkspaceSchema,
   assistantFileSchema,
   chatFileSchema,
   collectionFileSchema,
@@ -639,27 +719,17 @@ const schemas = {
   fileItemSchema,
   messageSchema,
   promptSchema,
-  promptWorkspaceSchema,
   collectionSchema,
-  collectionWorkspaceSchema,
   modelSchema,
-  modelWorkspaceSchema,
   presetSchema,
-  presetWorkspaceSchema,
   assistantSchema,
   assistantCollectionSchema,
   assistantToolSchema,
-  assistantWorkspaceSchema,
   toolSchema,
-  toolWorkspaceSchema,
-  objectSchema,
-  bucketSchema,
   textBufferSchema,
 };
 const models = {
-  // User
   User: createModel('User', userSchema),
-  // Items
   Workspace: createModel('Workspace', workspaceSchema),
   UserActiveChatSession: createModel('UserActiveChatSession', userActiveChatSessionSchema),
   ChatSession: createModel('ChatSession', chatSessionSchema),
@@ -673,13 +743,13 @@ const models = {
   Tool: createModel('Tool', toolSchema),
   Model: createModel('Model', modelSchema),
 
-  FileWorkspace: createModel('FileWorkspace', fileWorkspaceSchema),
-  PromptWorkspace: createModel('PromptWorkspace', promptWorkspaceSchema),
-  CollectionWorkspace: createModel('CollectionWorkspace', collectionWorkspaceSchema),
-  ModelWorkspace: createModel('ModelWorkspace', modelWorkspaceSchema),
-  PresetWorkspace: createModel('PresetWorkspace', presetWorkspaceSchema),
-  AssistantWorkspace: createModel('AssistantWorkspace', assistantWorkspaceSchema),
-  ToolWorkspace: createModel('ToolWorkspace', toolWorkspaceSchema),
+  FileWorkspace: createModel('FileWorkspace', workspaceFilesSchema),
+  PromptWorkspace: createModel('PromptWorkspace', workspacePromptSchema),
+  CollectionWorkspace: createModel('CollectionWorkspace', workspaceCollectionSchema),
+  ModelWorkspace: createModel('ModelWorkspace', workspaceModelSchema),
+  PresetWorkspace: createModel('PresetWorkspace', workspacePresetsSchema),
+  AssistantWorkspace: createModel('AssistantWorkspace', workspaceAssistantSchema),
+  ToolWorkspace: createModel('ToolWorkspace', workspaceToolSchema),
 
   AssistantFile: createModel('AssistantFile', assistantFileSchema),
   ChatFile: createModel('ChatFile', chatFileSchema),
@@ -688,15 +758,8 @@ const models = {
   FileItem: createModel('FileItem', fileItemSchema),
   AssistantCollection: createModel('AssistantCollection', assistantCollectionSchema),
   AssistantTool: createModel('AssistantTool', assistantToolSchema),
-  // Chat: createModel('Chat', chatSchema),
-
   JwtSecret: createModel('JwtSecret', jwtSecretSchema),
-  Object: createModel('Object', objectSchema),
-  Bucket: createModel('Bucket', bucketSchema),
   TextBuffer: createModel('TextBuffer', textBufferSchema),
-  // ChatMessage: createModel('ChatMessage', chatMessageSchema),
-  // ChatLogs: createModel('ChatLogs', chatLogsSchema),
-  // ChatFile: createModel('ChatFile', chatFileSchema),
 };
 
 module.exports = {
