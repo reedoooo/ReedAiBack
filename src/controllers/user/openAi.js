@@ -3,7 +3,7 @@ const axios = require('axios');
 
 const BASE_URL = 'https://api.openai.com/v1';
 const HEADERS = {
-  'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+  'Authorization': `Bearer ${process.env.OPENAI_API_PROJECT_KEY}`,
   'Content-Type': 'application/json'
 };
 

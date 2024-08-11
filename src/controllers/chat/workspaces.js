@@ -8,10 +8,8 @@ const {
   Tool,
   Model,
   Prompt,
-  Collection,
-  File,
-  Assistant,
-} = require('../../models');
+  User,
+} = require('@/models');
 
 const getAllWorkspaces = async (req, res) => {
   try {
@@ -44,98 +42,73 @@ const getWorkspaceById = async (req, res) => {
   }
 };
 
-// const createWorkspace = async (req, res) => {
-//   try {
-//     const newWorkspace = new Workspace(req.body);
-//     const savedWorkspace = await newWorkspace.save();
-//     res.status(201).json(savedWorkspace);
-//   } catch (error) {
-//     res.status(400).json({ message: 'Error creating workspace', error: error.message });
-//   }
-// };
-
-// Controller function for creating a new workspace
 const createWorkspace = async (req, res) => {
   try {
-    const {
-      userId,
-      chatSessions,
-      activeChatSession,
-      folders,
-      defaultPreset,
-      defaultTool,
-      defaultModel,
-      defaultPrompt,
-      defaultCollection,
-      defaultFile,
-      defaultAssistant,
-      name,
-      description,
-      imagePath,
-      active,
-      defaultContextLength,
-      defaultTemperature,
-      embeddingsProvider,
-      instructions,
-      sharing,
-      includeProfileContext,
-      includeWorkspaceInstructions,
-      isHome,
-    } = req.body;
-
-    // Create referenced documents if provided in the request body
-    const chatSessionDocs = chatSessions ? await ChatSession.insertMany(chatSessions) : [];
-    const folderDocs = folders ? await Folder.insertMany(folders) : [];
-    const presetDoc = defaultPreset ? await Preset.create(defaultPreset) : undefined;
-    const toolDoc = defaultTool ? await Tool.create(defaultTool) : undefined;
-    const modelDoc = defaultModel ? await Model.create(defaultModel) : undefined;
-    const promptDoc = defaultPrompt ? await Prompt.create(defaultPrompt) : undefined;
-    const collectionDoc = defaultCollection ? await Collection.create(defaultCollection) : undefined;
-    const fileDoc = defaultFile ? await File.create(defaultFile) : undefined;
-    const assistantDoc = defaultAssistant ? await Assistant.create(defaultAssistant) : undefined;
-
-    // Create the new workspace document
+    const workspaceData = req.body;
     const newWorkspace = new Workspace({
-      userId: mongoose.Types.ObjectId(userId),
-      chatSessions: chatSessionDocs.map(doc => doc._id),
-      activeChatSession: activeChatSession ? mongoose.Types.ObjectId(activeChatSession) : null,
-      folders: folderDocs.map(doc => doc._id),
-      defaultPreset: presetDoc ? presetDoc._id : null,
-      defaultTool: toolDoc ? toolDoc._id : null,
-      defaultModel: modelDoc ? modelDoc._id : null,
-      defaultPrompt: promptDoc ? promptDoc._id : null,
-      defaultCollection: collectionDoc ? collectionDoc._id : null,
-      defaultFile: fileDoc ? fileDoc._id : null,
-      defaultAssistant: assistantDoc ? assistantDoc._id : null,
-      name,
-      description,
-      imagePath,
-      active,
-      defaultContextLength,
-      defaultModel,
-      defaultTemperature,
-      embeddingsProvider,
-      instructions,
-      sharing,
-      includeProfileContext,
-      includeWorkspaceInstructions,
-      isHome,
+      userId: workspaceData.userId,
+      name: workspaceData.name,
+      active: true,
     });
+    const savedWorkspace = await newWorkspace.save();
+    const { prompt, file, folder, tool, model, asisstant } = workspaceData;
+    const presetData = workspaceData.customPreset;
+    // --- PRESET CREATION ---
+    const newCustomPreset = {
+      ...presetData,
+      userId: workspaceData.userId,
+      workspaceId: savedWorkspace._id,
+      name: workspaceData.name,
+      includeProfileContext: false, // Set default value or get from request
+      includeWorkspaceInstructions: false, // Set default value or get from request
+      model: workspaceData.model,
+      prompt: '', // Assuming prompt can be an empty string initially
+      sharing: '', // Assuming sharing can be an empty string initially
+    };
+    const newPreset = new Preset(newCustomPreset);
+    const savedPreset = await newPreset.save();
+    const newPrompt = new Prompt(prompt);
+    const savedPrompt = await newPrompt.save();
+    const newFolder = new Folder(folder);
+    const savedFolder = await newFolder.save();
+    const newTool = new Tool(tool);
+    const savedTool = await newTool.save();
+    const newModel = new Model(model);
+    const savedModel = await newModel.save();
 
-    // Save the workspace to the database
-    await newWorkspace.save();
+    savedWorkspace.presets.push(savedPreset._id);
+    savedWorkspace.prompts.push(savedPrompt._id);
+    savedWorkspace.models.push(savedModel._id);
+    savedWorkspace.tools.push(savedTool._id);
+    savedWorkspace.folders.push(savedFolder._id);
+    savedWorkspace.selectedPreset = savedPreset._id;
+    await savedWorkspace.save();
+    // Push the new workspace ID into the user's workspaces array
+    const user = await User.findById(req.user._id); // Assuming req.user contains the authenticated user's ID
+    user.workspaces.push(savedWorkspace._id);
+    user.presets.push(savedPreset._id);
+    await user.save();
+    // await newWorkspace
+    //   .populate(
+    //     'userId chatSessions activeChatSession folders defaultPreset defaultTool defaultModel defaultPrompt defaultCollection defaultFile defaultAssistant'
+    //   )
+    //   .execPopulate();
+    const responseObj = {
+      workspace: await savedWorkspace
+        .populate('presets')
+        .populate('prompts')
+        .populate('models')
+        .populate('tools')
+        .populate('folders')
+        .execPopulate(),
 
-    // Populate all references in the workspace before returning
-    await newWorkspace
-      .populate(
-        'userId chatSessions activeChatSession folders defaultPreset defaultTool defaultModel defaultPrompt defaultCollection defaultFile defaultAssistant'
-      )
-      .execPopulate();
-
+      preset: savedPreset,
+    };
+    logger.info(`responseObj: ${JSON.stringify(responseObj)}`);
     res.status(201).json(newWorkspace);
   } catch (error) {
     console.error('Error creating workspace:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
 };
 

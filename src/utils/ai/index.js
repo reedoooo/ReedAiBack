@@ -1,5 +1,4 @@
 module.exports = {
-  ...require('./chat'),
   ...require('./openAi'),
   ...require('./pinecone'),
   ...require('./mongodb'),

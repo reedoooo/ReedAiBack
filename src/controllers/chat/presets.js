@@ -1,4 +1,4 @@
-const { Preset: ChatPreset } = require('../../models');
+const { Preset: ChatPreset } = require('@/models');
 
 const getAllChatPresets = async (req, res) => {
   try {

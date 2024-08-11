@@ -1,8 +1,8 @@
-const app = require('./src/app');
-const { logger } = require('./src/config');
-const { connectDB } = require('./src/db');
 require('dotenv').config();
 require('module-alias/register');
+const app = require('./src/app');
+const { logger } = require('./src/config/logging');
+const { connectDB } = require('./src/db');
 
 // Connect to MongoDB and start server
 async function main() {

@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-const bcrypt = require('bcrypt');
 const path = require('path');
 const { createSchema, createModel } = require('./utils/schema');
 const profileImagePath = path.join(__dirname, '../../public/files/avatar1.png');
@@ -206,85 +205,91 @@ userSchema.index({ username: 1 }, { unique: true });
 const workspaceSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   chatSessions: [{ type: Schema.Types.ObjectId, ref: 'ChatSession' }],
-  activeChatSession: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
   folders: [{ type: Schema.Types.ObjectId, ref: 'Folder' }],
-  defaultPreset: {
-    type: Schema.Types.ObjectId,
-    ref: 'Preset',
-    default: {
-      name: 'Default Preset',
-      description: 'A default preset.',
-      contextLength: 15,
-      model: 'gpt-4-1106-preview',
-      prompt: 'A default prompt.',
-      temperature: 0.7,
-      embeddingsProvider: 'openai',
-      includeProfileContext: true,
-      includeWorkspaceInstructions: true,
-      sharing: 'private',
-    },
-  },
-  defaultTool: {
-    type: Schema.Types.ObjectId,
-    ref: 'Tool',
-    default: {
-      name: 'Default Tool',
-      description: 'A default tool.',
-      instructions: 'A default tool.',
-      sharing: 'private',
-    },
-  },
-  defaultModel: {
-    type: Schema.Types.ObjectId,
-    ref: 'Model',
-    default: {
-      name: 'Default Model',
-      description: 'A default model.',
-      contextLength: 15,
-      maxToken: 500,
-      defaultToken: 100,
-      isDefault: true,
-    },
-  },
-  defaultPrompt: {
-    type: Schema.Types.ObjectId,
-    ref: 'Prompt',
-    default: {
-      name: 'Default Prompt',
-      content: 'A default prompt.',
-      sharing: 'private',
-    },
-  },
-  defaultCollection: {
-    type: Schema.Types.ObjectId,
-    ref: 'Collection',
-    default: {
-      name: 'Default Collection',
-      description: 'A default collection.',
-      sharing: 'private',
-    },
-  },
-  defaultFile: {
-    type: Schema.Types.ObjectId,
-    ref: 'File',
-    default: {
-      name: 'Default File',
-      description: 'A default file.',
-      sharing: 'private',
-    },
-  },
-  defaultAssistant: {
-    type: Schema.Types.ObjectId,
-    ref: 'Assistant',
-    default: {
-      name: 'Default Assistant',
-      description: 'A default assistant.',
-      instructions: 'A default assistant.',
-      sharing: 'private',
-    },
-  },
+  tools: [{ type: Schema.Types.ObjectId, ref: 'Tool' }],
+  presets: [{ type: Schema.Types.ObjectId, ref: 'Preset' }],
+  assistants: [{ type: Schema.Types.ObjectId, ref: 'Assistant' }],
+  prompts: [{ type: Schema.Types.ObjectId, ref: 'Prompt' }],
+  models: [{ type: Schema.Types.ObjectId, ref: 'Model' }],
+
+  // defaultPreset: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Preset',
+  //   default: {
+  //     name: 'Default Preset',
+  //     description: 'A default preset.',
+  //     contextLength: 15,
+  //     model: 'gpt-4-1106-preview',
+  //     prompt: 'A default prompt.',
+  //     temperature: 0.7,
+  //     embeddingsProvider: 'openai',
+  //     includeProfileContext: true,
+  //     includeWorkspaceInstructions: true,
+  //     sharing: 'private',
+  //   },
+  // },
+  // defaultTool: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Tool',
+  //   default: {
+  //     name: 'Default Tool',
+  //     description: 'A default tool.',
+  //     instructions: 'A default tool.',
+  //     sharing: 'private',
+  //   },
+  // },
+  // defaultModel: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Model',
+  //   default: {
+  //     name: 'Default Model',
+  //     description: 'A default model.',
+  //     contextLength: 15,
+  //     maxToken: 500,
+  //     defaultToken: 100,
+  //     isDefault: true,
+  //   },
+  // },
+  // defaultPrompt: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Prompt',
+  //   default: {
+  //     name: 'Default Prompt',
+  //     content: 'A default prompt.',
+  //     sharing: 'private',
+  //   },
+  // },
+  // defaultCollection: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Collection',
+  //   default: {
+  //     name: 'Default Collection',
+  //     description: 'A default collection.',
+  //     sharing: 'private',
+  //   },
+  // },
+  // defaultFile: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'File',
+  //   default: {
+  //     name: 'Default File',
+  //     description: 'A default file.',
+  //     sharing: 'private',
+  //   },
+  // },
+  // defaultAssistant: {
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Assistant',
+  //   default: {
+  //     name: 'Default Assistant',
+  //     description: 'A default assistant.',
+  //     instructions: 'A default assistant.',
+  //     sharing: 'private',
+  //   },
+  // },
+
+  selectedPreset: { type: Schema.Types.ObjectId, ref: 'Preset' },
   name: { type: String, required: false },
-  description: { type: String },
   imagePath: { type: String },
   active: { type: Boolean, default: false },
 
@@ -352,6 +357,7 @@ const folderSchema = createSchema({
 // =============================
 const promptSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   name: String,
   role: String,
@@ -360,6 +366,8 @@ const promptSchema = createSchema({
   sharing: String,
   key: String,
   value: String,
+  rating: Number,
+  tags: Array,
   metadata: {
     type: Map,
     of: Schema.Types.Mixed,
@@ -375,11 +383,11 @@ const promptSchema = createSchema({
     },
   },
 });
-promptSchema.pre('save', function (next) {
-  this.key = this.name.toLowerCase().replace(/\s+/g, '_');
-  this.value = this.content;
-  next();
-});
+// promptSchema.pre('save', function (next) {
+//   this.key = this.name.toLowerCase().replace(/\s+/g, '_');
+//   this.value = this.content;
+//   next();
+// });
 // =============================
 // [MESSAGES] content, role, files, sessionId
 // =============================
@@ -400,6 +408,10 @@ const messageSchema = createSchema({
     content: String,
     additional_kwargs: {},
   },
+  summary: {
+    type: mongoose.Schema.Types.Mixed, // Allows storing any data type, including objects
+    required: false,
+  },
   tokens: { type: Number, required: false },
   localEmbedding: String,
   openaiEmbedding: String,
@@ -418,16 +430,16 @@ const fileSchema = createSchema({
   messageId: { type: Schema.Types.ObjectId, ref: 'ChatMessage' },
 
   name: { type: String, required: false },
-  description: { type: String, required: false },
+  size: { type: Number, required: false },
+  originalFileType: { type: String, required: false },
   filePath: String,
   data: { type: Buffer, required: false },
-  size: { type: Number, required: false },
-  tokens: { type: Number, required: false },
   type: {
     type: String,
     required: false,
     enum: ['txt', 'pdf', 'doc', 'docx', 'md', 'html', 'json', 'csv', 'tsv', 'jsx', 'js', 'png', 'jpg', 'jpeg', 'gif'],
   },
+  tokens: { type: Number, required: false },
   sharing: { type: String },
   mimeType: { type: String, required: false },
   metadata: {
@@ -496,12 +508,15 @@ const chatSessionSchema = createSchema({
   topic: { type: String, required: false },
   active: { type: Boolean, required: false },
   model: { type: String, required: false },
-  summary: { type: String, required: false },
-
+  summary: {
+    type: mongoose.Schema.Types.Mixed, // Allows storing any data type, including objects
+    required: false,
+  },
   stats: {
     tokenUsage: { type: Number, default: 0 },
     messageCount: { type: Number, default: 0 },
   },
+  apiKey: { type: String, required: false },
   settings: {
     type: Map,
     of: Schema.Types.Mixed,
@@ -566,15 +581,35 @@ const toolSchema = createSchema({
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   sessionId: { type: Schema.Types.ObjectId, ref: 'ChatSession' },
   folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
+  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
   name: String,
   description: String,
   url: String,
   schema: Schema.Types.Mixed,
   customHeaders: Schema.Types.Mixed,
   sharing: String,
+  defaultSchema: {
+    type: Object,
+    required: false,
+    default: {
+      type: 'function',
+      function: {
+        name: '',
+        description: '',
+        parameters: {
+          type: 'object',
+          properties: {
+            /* -- input properties -- */
+          },
+          required: [
+            /* -- input required properties -- */
+          ],
+        },
+      },
+    },
+  },
 });
 const assistantToolSchema = createSchema({
-  assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
   toolId: { type: Schema.Types.ObjectId, ref: 'Tool' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 });
@@ -648,40 +683,63 @@ const presetSchema = createSchema({
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   name: { type: String, required: false },
-  description: { type: String, required: false },
-
+  temperature: { type: Number, required: false },
+  maxTokens: { type: Number, required: false },
+  topP: { type: Number, required: false },
+  frequencyPenalty: { type: Number, required: false },
+  presencePenalty: { type: Number, required: false },
+  n: { type: Number, required: false },
   contextLength: { type: Number, required: false },
   embeddingsProvider: { type: String, required: false },
+  systemPrompt: { type: String, required: false },
+  assistantPrompt: { type: String, required: false },
+  functions: {
+    type: Array,
+    required: false,
+  },
   includeProfileContext: { type: Boolean, required: false },
   includeWorkspaceInstructions: { type: Boolean, required: false },
   model: { type: String, required: false },
   prompt: { type: String, required: false },
   sharing: { type: String },
-  temperature: { type: Number, required: false },
 });
 // =============================
 // [ASSISTANTS]
 // =============================
 const assistantSchema = createSchema({
+  // --- APP DATA
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  name: { type: String, required: false },
-  instructions: { type: String, required: false },
-  contextLength: { type: Number },
-  model: { type: String, required: false },
-  prompt: { type: String, required: false },
-  description: { type: String, required: false },
-  embeddingsProvider: { type: String, required: false },
+  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
   folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
+
+  prompt: { type: String, required: false },
+  contextLength: { type: Number },
+  embeddingsProvider: { type: String, required: false },
   imagePath: { type: String, required: false },
-  includeProfileContext: { type: Boolean, required: false },
-  includeWorkspaceInstructions: { type: Boolean, required: false },
-  sharing: { type: String },
-  temperature: { type: Number, required: false },
-  tools: [{ type: { type: String, required: false } }],
+  includeProfileContext: { type: Boolean, required: false, default: false },
+  includeWorkspaceInstructions: { type: Boolean, required: false, default: false },
+  sharing: { type: String, required: false, default: 'private' },
+  // --- API DATA ---
+  model: { type: String, required: false },
+  name: { type: String, required: false },
+  description: { type: String, required: false },
+  instructions: { type: String, required: false },
+  tools: [{ type: Schema.Types.ObjectId, ref: 'Tool' }],
   toolResources: {
     codeInterpreter: {
       fileIds: [{ type: Schema.Types.ObjectId, ref: 'File' }],
     },
+  },
+  temperature: { type: Number, required: false, default: 0.9 },
+  top_p: {
+    type: Number,
+    required: false,
+    default: 1.0,
+  },
+  responseFormat: {
+    type: String,
+    required: false,
+    default: 'json',
   },
 });
 // =============================
@@ -761,7 +819,8 @@ const models = {
   JwtSecret: createModel('JwtSecret', jwtSecretSchema),
   TextBuffer: createModel('TextBuffer', textBufferSchema),
 };
-
+module.exports.models = models;
+module.exports.schemas = schemas;
 module.exports = {
   ...schemas,
   ...models,

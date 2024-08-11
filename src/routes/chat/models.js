@@ -1,6 +1,6 @@
 const express = require('express');
-const { asyncHandler } = require('../../utils/api/sync.js');
-const authenticate = require('../../middlewares/authenticate.js');
+const { asyncHandler } = require('@/utils/api/sync.js');
+const authenticate = require('@/middlewares/authenticate.js');
 const {
   getAllChatModels,
   getChatModelById,

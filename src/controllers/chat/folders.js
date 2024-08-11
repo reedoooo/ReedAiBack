@@ -1,4 +1,4 @@
-const { Folder: ChatFolder } = require('../../models');
+const { Folder: ChatFolder } = require('@/models');
 
 const getAllChatFolders = async (req, res) => {
   try {
@@ -60,5 +60,5 @@ module.exports = {
   getChatFolderById,
   createChatFolder,
   updateChatFolder,
-  deleteChatFolder
+  deleteChatFolder,
 };

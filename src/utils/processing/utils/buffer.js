@@ -1,4 +1,3 @@
-
 function newTextBuffer(n, prefix, suffix) {
   const builders = Array(n).fill('');
   return new TextBuffer({ builders, prefix, suffix });
@@ -29,7 +28,7 @@ function tbToString(tb, separator) {
 
 const tiktoken = require('tiktoken');
 const { decode } = require('tiktoken');
-const { TextBuffer } = require('../../../models');
+const { TextBuffer } = require('@/models');
 
 async function getTokenCount(content) {
   const encoding = 'cl100k_base';
@@ -70,5 +69,5 @@ module.exports = {
   getTokenCount,
   decodeFirstN,
   getTokenEmbedding,
-  firstN
+  firstN,
 };

@@ -2,12 +2,12 @@
 
 const request = require('supertest');
 const express = require('express');
-const controller = require('../../../controllers').chat;
+const controller = require('@/controllers').chat;
 const { getFolders, createFolder, updateFolder, deleteFolder } = controller.folders;
 
 const app = express();
 app.use(express.json());
-app.use('/api/chat/folders', require('../../../routes/chat/Folders'));
+app.use('/api/chat/folders', require('@/routes/chat/Folders'));
 
 describe('Chat Folders Routes', () => {
   it('should get all folders', async () => {

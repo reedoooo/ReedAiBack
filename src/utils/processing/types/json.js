@@ -1,7 +1,7 @@
 const { encode } = require('gpt-tokenizer');
 const { JSONLoader } = require('langchain/document_loaders/fs/json');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const { CHUNK_SIZE, CHUNK_OVERLAP } = require('../../../config/constants');
+const { CHUNK_SIZE, CHUNK_OVERLAP } = require('@/config/constants');
 
 const processJSON = async json => {
   const loader = new JSONLoader(json);

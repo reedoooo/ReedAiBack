@@ -1,4 +1,5 @@
-// export * from './main';
 module.exports = {
   ...require('./main'),
+  ...require('./assistants'),
+  ...require('./chat'),
 };

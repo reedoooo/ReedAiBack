@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { asyncHandler } = require('../../utils/api/sync.js');
-const authenticate = require('../../middlewares/authenticate.js');
+const { asyncHandler } = require('@/utils/api/sync.js');
+const authenticate = require('@/middlewares/authenticate.js');
 const {
   getAllChatCollections,
   getChatCollectionById,

@@ -1,4 +1,4 @@
-const { Prompt: ChatPrompt } = require('../../models');
+const { Prompt: ChatPrompt } = require('@/models');
 
 const getAllChatPrompts = async (req, res) => {
   try {

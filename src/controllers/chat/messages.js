@@ -1,4 +1,4 @@
-const { Message: ChatMessage } = require('../../models');
+const { Message: ChatMessage } = require('@/models');
 
 const getAllChatMessages = async (req, res) => {
   try {

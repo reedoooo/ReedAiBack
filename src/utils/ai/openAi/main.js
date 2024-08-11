@@ -1,16 +1,13 @@
 const { OpenAIEmbeddings, ChatOpenAI } = require('@langchain/openai');
-const OpenAI = require('openai');
-const { v4: uuidv4 } = require('uuid');
-const supportedMimeTypes = require('../../processing/types/index.js');
-const { map } = require('lodash');
 const { getEnv } = require('../../api/env.js');
-const { logger } = require('../../../config/logging/index.js');
+const { default: OpenAI } = require('openai');
+const supportedMimeTypes = require('@/utils/processing/types/main.js');
 require('dotenv').config();
 
 const getOpenaiClient = () => {
   try {
     const client = new OpenAI({
-      apiKey: getEnv('OPENAI_API_KEY') || process.env.OPENAI_API_KEY,
+      apiKey: getEnv('OPENAI_API_PROJECT_KEY') || process.env.OPENAI_API_PROJECT_KEY,
       // organization: getEnv('OPENAI_API_ORG_NAME'),
     });
     console.log('OpenAI client initialized successfully');
@@ -23,7 +20,7 @@ const getOpenaiClient = () => {
 const getOpenaiLangChainClient = () => {
   try {
     const client = new ChatOpenAI({
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: process.env.OPENAI_API_PROJECT_KEY,
       modelName: 'gpt-3.5-turbo',
     });
     console.log('OpenAI LangChain client initialized successfully');
@@ -38,7 +35,7 @@ const getEmbedding = async (text, key) => {
     console.log(`Generating embedding for text: ${text}...`);
     const embedder = new OpenAIEmbeddings({
       modelName: 'text-embedding-3-small',
-      openAIApiKey: key || process.env.OPENAI_API_KEY,
+      openAIApiKey: key || process.env.OPENAI_API_PROJECT_KEY,
     });
     const embedding = await embedder.embedQuery(text);
     console.log('Embedding generated successfully');

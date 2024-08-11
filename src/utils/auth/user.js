@@ -1,5 +1,5 @@
+const { logger } = require('@/config/logging');
 const mongoose = require('mongoose');
-const { logger } = require('../../config/logging/index.js');
 
 const getUserId = async (req, res) => {
   try {

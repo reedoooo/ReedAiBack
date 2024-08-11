@@ -12,7 +12,7 @@ const upsertDocs = async (req, res) => {
     const content = await scrapeContent(url);
 		const embedder = new OpenAIEmbeddings({
       modelName: 'text-embedding-3-small',
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_PROJECT_KEY,
       dimensions: 512, // Use 512-dimensional embeddings
     });
     const pinecone = await getPineconeClient();

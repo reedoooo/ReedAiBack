@@ -1,4 +1,4 @@
-const logger = require('../../../config/logging/index');
+const { logger } = require('@/config/logging');
 const { getEnv } = require('../../api');
 const { getPineconeClient } = require('./get');
 

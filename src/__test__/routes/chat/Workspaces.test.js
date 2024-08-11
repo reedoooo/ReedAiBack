@@ -2,8 +2,8 @@
 
 const request = require('supertest');
 const express = require('express');
-const { handleUpload } = require('../../../middlewares/uploads');
-const controller = require('../../../controllers').chat;
+const { handleUpload } = require('@/middlewares/uploads');
+const controller = require('@/controllers').chat;
 const {
   createHomeWorkspace,
   getWorkspaceImage,
@@ -18,7 +18,7 @@ const {
 
 const app = express();
 app.use(express.json());
-app.use('/api/chat/workspaces', require('../../../routes/chat/Workspaces'));
+app.use('/api/chat/workspaces', require('@/routes/chat/Workspaces'));
 
 describe('Chat Workspaces Routes', () => {
   it('should create a home workspace', async () => {
@@ -27,9 +27,7 @@ describe('Chat Workspaces Routes', () => {
   });
 
   it('should upload a workspace image', async () => {
-    const response = await request(app)
-      .post('/api/chat/workspaces/upload/123')
-      .attach('image', 'path/to/image.jpg');
+    const response = await request(app).post('/api/chat/workspaces/upload/123').attach('image', 'path/to/image.jpg');
     expect(response.status).toBe(200);
   });
 

@@ -19,9 +19,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@babel/cli": "^7.24.5",
-    "@babel/core": "^7.24.5",
-    "@babel/preset-env": "^7.24.5",
     "@langchain/community": "^0.2.18",
     "@langchain/core": "^0.2.8",
     "@langchain/mongodb": "^0.0.4",
@@ -80,6 +77,10 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "babel-plugin-module-resolver": "^5.0.2",
     "cross-env": "^7.0.3",
     "depcheck": "^1.4.7",
     "eslint": "^8.57.0",
@@ -95,6 +96,7 @@
   "nodemonConfig": {
     "watch": [
       "src",
+      "src/models",
       "config",
       "package.json",
       "jest.config.js"
@@ -107,20 +109,18 @@
     "exec": "node --inspect=9229 index.js"
   },
   "_moduleAliases": {
-    "@root": ".",
-    "@test": "src/__test__",
-    "@ai": "src/ai",
-    "@config": "src/config",
-    "@controllers": "src/controllers",
-    "@generated": "src/generated",
-    "@lib": "src/lib",
-    "@middlewares": "src/middlewares",
-    "@models": "src/models",
-    "@public": "src/public",
-    "@routes": "src/routes",
-    "@services": "src/services",
-    "@static": "src/static",
-    "@uploads": "src/uploads",
-    "@utils": "src/utils"
+    "@/root": ".",
+    "@/public": "./public",
+    "@/test": "src/__test__",
+    "@/config": "src/config",
+    "@/controllers": "src/controllers",
+    "@/db": "src/db",
+    "@/lib": "src/lib",
+    "@/middlewares": "src/middlewares",
+    "@/models": "src/models",
+    "@/routes": "src/routes",
+    "@/services": "src/services",
+    "@/utils": "src/utils",
+    "@/app": "src"
   }
 }

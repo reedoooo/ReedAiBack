@@ -11,7 +11,7 @@ const vectorize = async text => {
 
     const embedder = new OpenAIEmbeddings({
       modelName: 'text-embedding-3-small',
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_PROJECT_KEY,
       dimensions: 512, // Use 512-dimensional embeddings
     });
     const response = await embedder.embedQuery(text);

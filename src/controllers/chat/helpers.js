@@ -1,5 +1,6 @@
+const { logger } = require('@/config/logging');
+const { ChatSession, Message } = require('@/models');
 const mongoose = require('mongoose');
-const { ChatSession, Message } = require('../../models');
 
 /**
  * Save messages to a chat session.
@@ -13,13 +14,12 @@ const saveMessagesToSession = async (sessionId, messages) => {
     if (!chatSession) {
       throw new Error('Chat session not found');
     }
-
+    logger.info(`Chat session found: ${chatSession._id}`);
+    // logger.info(`MESSAGES: ${JSON.stringify(messages)}`);
     // Extract existing messageIds from the session
     const existingMessageIds = chatSession?.messages.map(msg => msg.messageId);
-
     // Filter out messages that already exist in the session
     const newMessagesData = messages.filter(message => !existingMessageIds.includes(message.messageId));
-
     // Iterate over each new message and create ChatMessage documents
     const newMessages = await Promise.all(
       newMessagesData.map(async message => {
@@ -32,7 +32,7 @@ const saveMessagesToSession = async (sessionId, messages) => {
           },
           assistantId: message.assistantId,
           userId: message.userId,
-          messageId: message.messageId,
+          messageId: null,
           conversationId: message.conversationId,
           content: message.content,
           role: message.role,
@@ -43,6 +43,9 @@ const saveMessagesToSession = async (sessionId, messages) => {
           sequenceNumber: message.sequenceNumber,
           metadata: message.metadata || {},
         });
+        logger.info(`Creating new message ${message.messageId} for session ${sessionId}`);
+        logger.info(`New message data: ${JSON.stringify(newMessage)}`);
+        logger.info(`Saving message ${message.messageId} to session ${sessionId}`);
         await newMessage.save();
         return newMessage;
       })
@@ -52,8 +55,7 @@ const saveMessagesToSession = async (sessionId, messages) => {
     chatSession.messages.push(...newMessages.map(msg => msg._id));
     chatSession.stats.messageCount += newMessages.length;
     await chatSession.save();
-
-    console.log(`Messages saved successfully to session ${sessionId}`);
+    console.log(`Total messages in session ${sessionId}: ${chatSession.messages.length}`);
   } catch (error) {
     console.error('Error saving messages:', error.message);
     throw error;

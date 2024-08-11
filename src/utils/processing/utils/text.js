@@ -33,7 +33,7 @@ const extractFirstCodeBlock = input => {
 
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { logger } = require('../../../config/logging/index');
+const { logger } = require('@/config/logging/index');
 
 async function extractTextFromUrl(url) {
   try {
@@ -77,7 +77,6 @@ function convertToRegularObject(inputArray) {
     return acc;
   }, {});
 }
-
 
 module.exports = {
   replaceUnsupportedCharacters,

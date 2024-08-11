@@ -1,5 +1,5 @@
 const express = require('express');
-const { asyncHandler } = require('../../utils/api/sync.js');
+const { asyncHandler } = require('@/utils/api/sync.js');
 const {
   getAllChatAssistants,
   getChatAssistantById,
@@ -7,7 +7,7 @@ const {
   updateChatAssistant,
   deleteChatAssistant,
 } = require('../../controllers/index.js');
-const authenticate = require('../../middlewares/authenticate.js');
+const authenticate = require('@/middlewares/authenticate.js');
 
 const router = express.Router();
 

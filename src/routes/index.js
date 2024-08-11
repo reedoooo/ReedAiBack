@@ -14,6 +14,7 @@ const {
   chatCollectionRoutes,
   chatAssistantRoutes,
   chatToolsRoutes,
+  vectorRoutes,
 } = require('./chat/index.js');
 const { userBaseRoutes, userOpenAiRoutes } = require('./user/index.js');
 // const swaggerJSDoc = require('swagger-jsdoc');
@@ -42,6 +43,7 @@ const setupRoutes = app => {
   app.use('/api/user', userBaseRoutes);
   app.use('/api/user', userOpenAiRoutes);
   app.use('/api/files', systemFilesRoutes);
+  app.use('/api/chat/vectors', vectorRoutes);
   app.use('/api/chat/chatFiles', chatFilesRoutes);
   app.use('/api/chat/files', filesRoutes);
   app.use('/api/chat/v1', chatStreamRoutes); // <-- This is actually the current main chat route and also handles the streaming

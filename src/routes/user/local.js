@@ -8,6 +8,9 @@ router.post('/signup', userController.registerUser);
 router.post('/login', userController.loginUser);
 router.post('/logout', userController.logoutUser);
 
+// --- INITIALIZE ROUTES ---
+router.post('/:userId/addApiKey', userController.addApiKey);
+
 // --- AUTHENTICATION ROUTES ---
 router.get('/validate-token', userController.validateToken);
 router.get('/refresh-token', userController.refreshToken);

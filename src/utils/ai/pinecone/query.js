@@ -27,7 +27,7 @@ const queryPineconeVectorStoreAndQueryLLM = async (pinecone, indexName, question
 
     if (queryResponse.matches.length) {
       const llm = new OpenAI({
-        apiKey: getEnv('OPENAI_API_KEY') || process.env.OPENAI_API_KEY,
+        apiKey: getEnv('OPENAI_API_PROJECT_KEY') || process.env.OPENAI_API_PROJECT_KEY,
         model: 'gpt-4-1106-preview',
         temperature: 0.7, // Adjust as needed
       });

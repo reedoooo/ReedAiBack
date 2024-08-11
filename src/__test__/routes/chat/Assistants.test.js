@@ -2,14 +2,14 @@
 
 const request = require('supertest');
 const express = require('express');
-const { handleUpload } = require('../../../middlewares/uploads');
-const controller = require('../../../controllers').chat;
+const { handleUpload } = require('@/middlewares/uploads');
+const controller = require('@/controllers').chat;
 const { getAssistantImage, uploadAssistantImage, getAssistants, createAssistant, updateAssistant, deleteAssistant } =
   controller.assistants;
 
 const app = express();
 app.use(express.json());
-app.use('/api/chat/assistants', require('../../../routes/chat/Assistants'));
+app.use('/api/chat/assistants', require('@/routes/chat/Assistants'));
 
 describe('Chat Assistants Routes', () => {
   it('should get an assistant image', async () => {

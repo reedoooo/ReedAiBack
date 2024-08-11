@@ -3,7 +3,7 @@
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const { User } = require('../../models');
+const { User } = require('@/models');
 require('dotenv').config();
 
 const validateToken = token => {

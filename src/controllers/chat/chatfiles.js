@@ -1,4 +1,4 @@
-const { ChatFile } = require('../../models');
+const { ChatFile } = require('@/models');
 
 const getAllChatFiles = async (req, res) => {
   try {

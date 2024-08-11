@@ -1,6 +1,6 @@
 const express = require('express');
-const { asyncHandler } = require('../../utils/api/sync.js');
-const authenticate = require('../../middlewares/authenticate.js');
+const { asyncHandler } = require('@/utils/api/sync.js');
+const authenticate = require('@/middlewares/authenticate.js');
 const {
   getAllWorkspaces,
   getWorkspaceById,
@@ -61,7 +61,7 @@ const router = express.Router();
 router.use(authenticate);
 router.get('/', asyncHandler(getAllWorkspaces));
 router.get('/:id', asyncHandler(getWorkspaceById));
-router.post('/', asyncHandler(createWorkspace));
+router.post('/create', asyncHandler(createWorkspace));
 router.put('/:id', asyncHandler(updateWorkspace));
 router.delete('/:id', asyncHandler(deleteWorkspace));
 

@@ -1,6 +1,6 @@
 const { encode } = require('gpt-tokenizer');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const { CHUNK_SIZE, CHUNK_OVERLAP } = require('../../../config/constants');
+const { CHUNK_SIZE, CHUNK_OVERLAP } = require('@/config/constants');
 
 const processDocX = async text => {
   const splitter = new RecursiveCharacterTextSplitter({

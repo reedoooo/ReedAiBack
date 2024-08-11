@@ -1,4 +1,4 @@
-const { Collection: ChatCollection } = require('../../models');
+const { Collection: ChatCollection } = require('@/models');
 
 const getAllChatCollections = async (req, res) => {
   try {

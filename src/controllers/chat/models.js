@@ -1,4 +1,4 @@
-const { Model: ChatModel } = require('../../models');
+const { Model: ChatModel } = require('@/models');
 
 const getAllChatModels = async (req, res) => {
   try {
@@ -60,5 +60,5 @@ module.exports = {
   getChatModelById,
   createChatModel,
   updateChatModel,
-  deleteChatModel
+  deleteChatModel,
 };

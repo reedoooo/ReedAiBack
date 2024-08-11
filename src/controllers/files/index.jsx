@@ -3,7 +3,7 @@ const path = require('path');
 const baseUrl = 'http://localhost:3001/static/files/';
 
 const getListFiles = (req, res) => {
-  const directoryPath = path.join(__dirname, '../../../public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static/files');
 
   fs.readdir(directoryPath, (err, files) => {
     if (err) {
@@ -30,7 +30,7 @@ const getListFiles = (req, res) => {
 
 const download = (req, res) => {
   const fileName = req.params.name;
-  const directoryPath = path.join(__dirname, '../../../public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static/files');
 
   res.download(directoryPath + '/' + fileName, fileName, err => {
     if (err) {
@@ -99,7 +99,7 @@ const getFile = async (req, res) => {
 
 const getDownloads = (req, res) => {
   const { filename } = req.params;
-  const filePath = path.join(__dirname, '../../../public/downloads', filename);
+  const filePath = path.join(__dirname, '@/public/downloads', filename);
 
   res.download(filePath, err => {
     if (err) {
@@ -109,7 +109,7 @@ const getDownloads = (req, res) => {
 };
 
 const downloadCustomPrompts = (req, res) => {
-  const filePath = path.join(__dirname, '../../../public/static', 'chatgpt-prompts-custom.json');
+  const filePath = path.join(__dirname, '@/public/static', 'chatgpt-prompts-custom.json');
   res.download(filePath, 'chatgpt-prompts-custom.json', err => {
     if (err) {
       console.error(err);
@@ -120,7 +120,7 @@ const downloadCustomPrompts = (req, res) => {
 
 const getFileByType = (req, res) => {
   const { type } = req.params;
-  const directoryPath = path.join(__dirname, '../../../public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static/files');
 
   fs.readdir(directoryPath, (err, files) => {
     if (err) {
@@ -148,7 +148,7 @@ const getFileByType = (req, res) => {
 
 // Endpoint to get all JSON files from the static directory
 const getAllStaticJsonFiles = (req, res) => {
-  const staticDir = path.join(__dirname, '../../../public/static');
+  const staticDir = path.join(__dirname, '@/public/static');
 
   fs.readdir(staticDir, (err, files) => {
     if (err) {
@@ -164,7 +164,7 @@ const getAllStaticJsonFiles = (req, res) => {
 // Add custom prompt
 const addCustomPrompt = (req, res) => {
   const { name, content } = req.body;
-  const filePath = path.join(__dirname, '../../../public', 'user-custom-prompts.json');
+  const filePath = path.join(__dirname, '@/public', 'user-custom-prompts.json');
 
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
@@ -181,7 +181,7 @@ const addCustomPrompt = (req, res) => {
 
     prompts.push({ name, content });
 
-    fs.writeFile(filePath, JSON.stringify(prompts, null, 2), 'utf8', (err) => {
+    fs.writeFile(filePath, JSON.stringify(prompts, null, 2), 'utf8', err => {
       if (err) {
         console.error('Error writing file:', err);
         return res.status(500).send('Internal Server Error');
@@ -192,7 +192,7 @@ const addCustomPrompt = (req, res) => {
   });
 };
 const getAllPngFiles = (req, res) => {
-  const directoryPath = path.join(__dirname, '../../../public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static/files');
 
   fs.readdir(directoryPath, (err, files) => {
     if (err) {

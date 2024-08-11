@@ -11,6 +11,7 @@ const chatSessionRoutes = require('./sessions');
 const chatStreamRoutes = require('./stream');
 const chatToolsRoutes = require('./tools');
 const workspaceRoutes = require('./workspaces');
+const vectorRoutes = require('./vectors');
 
 module.exports = {
   chatAssistantRoutes,
@@ -26,6 +27,7 @@ module.exports = {
   chatStreamRoutes,
   chatToolsRoutes,
   workspaceRoutes,
+  vectorRoutes,
 };
 // module.exports = {
 //   chatAssistantRoutes,

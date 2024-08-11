@@ -1,6 +1,6 @@
 const express = require('express');
-const { asyncHandler } = require('../../utils/api/sync.js');
-const authenticate = require('../../middlewares/authenticate.js');
+const { asyncHandler } = require('@/utils/api/sync.js');
+const authenticate = require('@/middlewares/authenticate.js');
 const {
   getAllFiles,
   getFileById,
@@ -12,7 +12,7 @@ const {
   uploadMultipleFiles,
 } = require('../../controllers/index.js');
 const fs = require('fs');
-const { upload } = require('../../middlewares/upload.js');
+const { upload } = require('@/middlewares/upload.js');
 const router = express.Router();
 
 /**

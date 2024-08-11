@@ -1,6 +1,6 @@
 const express = require('express');
-const { asyncHandler } = require('../../utils/api/sync.js');
-const authenticate = require('../../middlewares/authenticate.js');
+const { asyncHandler } = require('@/utils/api/sync.js');
+const authenticate = require('@/middlewares/authenticate.js');
 const {
   getAllChatFiles,
   getChatFileById,
@@ -43,11 +43,11 @@ router.get(
 
 // Get list of all static files
 router.get(
-	'/static/list',
-	asyncHandler((req, res) => {
-		const files = fs.readdirSync(path.join(__dirname, '../../public/static/files'));
-		res.json({ files });
-	})
+  '/static/list',
+  asyncHandler((req, res) => {
+    const files = fs.readdirSync(path.join(__dirname, '../../public/static/files'));
+    res.json({ files });
+  })
 );
 
 module.exports = router;

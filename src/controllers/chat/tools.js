@@ -1,4 +1,4 @@
-const { Tool: ChatTool } = require('../../models');
+const { Tool: ChatTool } = require('@/models');
 
 const getAllChatTools = async (req, res) => {
   try {

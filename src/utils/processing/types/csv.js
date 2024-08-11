@@ -1,7 +1,7 @@
 const { encode } = require('gpt-tokenizer');
 const { CSVLoader } = require('@langchain/community/document_loaders/fs/csv');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const { CHUNK_SIZE, CHUNK_OVERLAP } = require('../../../config/constants');
+const { CHUNK_SIZE, CHUNK_OVERLAP } = require('@/config/constants');
 
 const processCSV = async csv => {
   const loader = new CSVLoader(csv);

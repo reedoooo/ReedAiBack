@@ -1,7 +1,6 @@
-const { ChatSession, Message } = require('../index.js');
-const { parseMessagesToHTML } = require('../../utils/processing');
-const { createSystemPromptB } = require('../../utils/ai');
-const logger = require('../../config/logging/index');
+const { ChatSession, Message, User } = require('../index.js');
+const { getMainSystemMessageContent } = require('@/lib/prompts/createPrompt.js');
+const { logger } = require('@/config/logging/logger.js');
 
 const createMessage = async (sessionId, role, content, userId, sequenceNumber) => {
   const message = new Message({
@@ -42,9 +41,7 @@ const getSessionMessages = async sessionId => {
       (msg, index, self) => msg && index === self.findIndex(m => m.content === msg.content)
     );
 
-    logger.info('Fetched session messages:', chatMessages);
-
-    const systemPrompt = createSystemPromptB();
+    const systemPrompt = getMainSystemMessageContent().content;
     const systemMessageIndex = chatMessages.findIndex(msg => msg.role === 'system');
     if (systemMessageIndex !== -1) {
       await Message.findByIdAndUpdate(chatMessages[systemMessageIndex]._id, { content: systemPrompt });
@@ -56,9 +53,11 @@ const getSessionMessages = async sessionId => {
       };
       chatMessages.unshift(newSystemMessage);
       const systemMessageId = await createMessage(sessionId, 'system', systemPrompt, null, 1);
+      chatSession.systemPrompt = systemMessageId;
       chatSession.messages.unshift(systemMessageId);
       await chatSession.save();
     }
+    // logger.info(`FETCHED SESSION ${chatMessages.length} MESSAGES: ${JSON.stringify(chatMessages)}`, chatMessages);
     return chatMessages;
   } catch (error) {
     console.error('Error fetching session messages:', error);
@@ -66,14 +65,16 @@ const getSessionMessages = async sessionId => {
   }
 };
 
-const initializeChatSession = async (sessionId, userId) => {
+const initializeChatSession = async (sessionId, workspaceId, userId, prompt) => {
   try {
     let chatSession = await ChatSession.findById({
       _id: sessionId,
     });
     if (!chatSession) {
+      // const newMessage = await createMessage(sessionId, 'user', prompt, userId, 1);
       chatSession = new ChatSession({
         name: `Chat ${sessionId}`,
+        workspaceId,
         userId,
         topic: 'New Chat',
         active: true,
@@ -85,6 +86,28 @@ const initializeChatSession = async (sessionId, userId) => {
           n: 1,
         },
         messages: [],
+        systemPrompt: null,
+        tools: [],
+        files: [],
+        summary: '',
+        active: true,
+        model: 'gpt-4-1106-preview',
+        topic: prompt,
+        stats: {
+          tokenUsage: 0,
+          messageCount: 0,
+        },
+        settings: {
+          contextCount: 15,
+          maxTokens: 500, // max length of the completion
+          temperature: 0.7,
+          model: 'gpt-4-1106-preview',
+          topP: 1,
+          n: 4,
+          debug: false,
+          summarizeMode: false,
+        },
+
         tuning: {
           debug: false,
           summary: '',
@@ -93,19 +116,22 @@ const initializeChatSession = async (sessionId, userId) => {
       });
       logger.info(`Created new chat session: ${chatSession._id}`);
       await chatSession.save();
+      const user = await User.findById(userId);
+      if (user) {
+        user.chatSessions.push(chatSession._id);
+        await user.save();
+        logger.info(`Added chat session ${chatSession._id} to user ${user._id}`);
+      } else {
+        throw new Error('User not found');
+      }
     }
 
     // CLEAR PREVIOUS CHAT HISTORY
-    await Message.deleteMany({ sessionId: chatSession._id });
-    await chatSession.updateOne({}, { $set: { messages: [] } });
+    // await Message.deleteMany({ sessionId: chatSession._id });
+    // await chatSession.updateOne({}, { $set: { messages: [] } });
 
     // SAVE CLEARED CHAT HISTORY
     await chatSession.save();
-
-    // PARSE ALL MESSAGES TO HTML
-    // const messages = await Message.find({ sessionId: chatSession._id });
-    // const parsedMessagesHTML = parseMessagesToHTML(messages);
-    // logger.info(`Parsed ${messages.length} messages to HTML: ${parsedMessagesHTML}`, parsedMessagesHTML);
     return chatSession;
   } catch (error) {
     logger.error('Error initializing chat session:', error.message);

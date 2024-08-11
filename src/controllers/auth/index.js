@@ -1,7 +1,7 @@
 // // controllers/authController.js
 // const { createWorkspaces } = require('../../db/data');
 // const userService = require('../../services/userService');
-// const { genJwtSecretAndAudience, generateToken, validateToken, getExpireSecureCookie } = require('../../utils');
+// const { genJwtSecretAndAudience, generateToken, validateToken, getExpireSecureCookie } = require('@/utils');
 
 // const createUser = async (req, res) => {
 //   try {

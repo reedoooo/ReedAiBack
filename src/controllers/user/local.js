@@ -1,12 +1,10 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcrypt');
-const logger = require('../../config/logging');
 require('dotenv').config();
-const { User, Folder } = require('../../models');
+const { User, Folder } = require('@/models');
 const passport = require('passport');
-// const { revokeToken } = require('../../utils');
 const {
   createWorkspace,
   createFolder,
@@ -18,7 +16,8 @@ const {
   createCollection,
   createTool,
   createModel,
-} = require('../../db/init'); // Adjust the path as needed
+} = require('@/db/init'); // Adjust the path as needed
+const { logger } = require('@/config/logging');
 const defaultUserData = {
   username: '',
   email: '',
@@ -145,7 +144,6 @@ const checkDuplicate = async (Model, query) => {
   const existingItem = await Model.findOne(query);
   return existingItem ? existingItem : null;
 };
-// Helper function to generate tokens
 const generateTokens = user => {
   const payload = { userId: user._id };
   const expiresIn = 60 * 60 * 24; // 24 hours
@@ -262,7 +260,6 @@ const registerUser = async (req, res) => {
     }
   }
 };
-
 const loginUser = async (req, res, next) => {
   try {
     const { usernameOrEmail, password } = req.body;
@@ -280,14 +277,22 @@ const loginUser = async (req, res, next) => {
     }
 
     const expiresIn = 60 * 60 * 2; // 2 hours
-    const accessToken = jwt.sign({
-      userId: user._id,
-      username: user.username,
-      email: user.email,
-    }, process.env.JWT_SECRET, { expiresIn });
-    const refreshToken = jwt.sign({
-      userId: user._id,
-    }, process.env.JWT_REFRESH_SECRET, { expiresIn });
+    const accessToken = jwt.sign(
+      {
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn }
+    );
+    const refreshToken = jwt.sign(
+      {
+        userId: user._id,
+      },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn }
+    );
     user.authSession = {
       token: accessToken,
       tokenType: 'Bearer',
@@ -296,15 +301,28 @@ const loginUser = async (req, res, next) => {
       expiresIn,
       expiresAt: Date.now() + expiresIn * 1000,
       createdAt: new Date(),
-    }
+    };
 
     await user.save();
     logger.info(`User logged in: ${user.email}`);
     const populatedUser = await User.findById(user._id).populate([
       'workspaces',
+      {
+        path: 'workspaces',
+        populate: {
+          path: 'chatSessions',
+          model: 'ChatSession', // Replace 'Message' with the actual name of your Message model
+        },
+      },
       'assistants',
       'prompts',
-      'chatSessions',
+      {
+        path: 'chatSessions',
+        populate: {
+          path: 'messages',
+          model: 'ChatMessage', // Replace 'Message' with the actual name of your Message model
+        },
+      },
       'folders',
       'files',
       'collections',
@@ -312,15 +330,19 @@ const loginUser = async (req, res, next) => {
       'tools',
       'presets',
     ]);
-    res
-      .status(200)
-      .json({ accessToken, refreshToken, expiresIn, userId: user._id, message: 'Logged in successfully', user: populatedUser });
+    res.status(200).json({
+      accessToken,
+      refreshToken,
+      expiresIn,
+      userId: user._id,
+      message: 'Logged in successfully',
+      user: populatedUser,
+    });
   } catch (error) {
     logger.error(`Error logging in: ${error.message}`);
-    res.status(500).json({ message: 'Error logging in', error: error.message });
+    res.status(500).json({ message: 'Error logging in', error: error.message, stack: error.stack, status: error.name });
   }
 };
-
 const logoutUser = async (req, res) => {
   try {
     // Check if there's a token in the request
@@ -351,7 +373,18 @@ const logoutUser = async (req, res) => {
     res.status(500).json({ message: 'Error logging out', error: error.message });
   }
 };
-
+const addApiKey = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    user.openai.apiKey = req.body.apiKey;
+    user.profile.openai.apiKey = req.body.apiKey;
+    await user.save();
+    res.status(201).json({ user, message: 'API key added successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding API key', error: error.message });
+  }
+};
 const validateToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -365,10 +398,14 @@ const validateToken = async (req, res) => {
     }
     res.send('Token is valid');
   } catch (error) {
-    res.status(401).send(error.message);
+    res.status(401).send({
+      message: 'Error validating token',
+      error: error.message,
+      stack: error.stack,
+      status: error.name,
+    });
   }
 };
-
 const uploadProfileImage = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -379,7 +416,6 @@ const uploadProfileImage = async (req, res) => {
     res.status(500).send('Error uploading image: ' + error.message);
   }
 };
-
 const getProfileImage = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -389,7 +425,6 @@ const getProfileImage = async (req, res) => {
     res.status(500).send('Error retrieving image: ' + error.message);
   }
 };
-
 const updateUserProfile = async (req, res) => {
   try {
     const { userId, updatedData } = req.params;
@@ -400,7 +435,6 @@ const updateUserProfile = async (req, res) => {
     res.status(500).send('Error updating user profile: ' + error.message);
   }
 };
-
 const refreshToken = async (req, res) => {
   try {
     const { token } = req.body;
@@ -421,7 +455,6 @@ const refreshToken = async (req, res) => {
     res.status(401).json({ message: 'Invalid token', error: error.message });
   }
 };
-
 module.exports = {
   registerUser,
   loginUser,
@@ -431,4 +464,5 @@ module.exports = {
   getProfileImage,
   updateUserProfile,
   refreshToken,
+  addApiKey,
 };
