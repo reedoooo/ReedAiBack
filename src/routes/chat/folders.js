@@ -1,22 +1,15 @@
 const express = require('express');
 const { asyncHandler } = require('@/utils/api/sync.js');
 const authenticate = require('@/middlewares/authenticate.js');
-const {
-  getAllChatFolders,
-  getChatFolderById,
-  createChatFolder,
-  updateChatFolder,
-  deleteChatFolder,
-} = require('../../controllers/index.js');
+const { getFoldersByWorkspaceId, createFolder, updateFolder, deleteFolder } = require('@/controllers');
 
 const router = express.Router();
 
 router.use(authenticate);
 
-router.get('/', asyncHandler(getAllChatFolders));
-router.get('/:id', asyncHandler(getChatFolderById));
-router.post('/', asyncHandler(createChatFolder));
-router.put('/:id', asyncHandler(updateChatFolder));
-router.delete('/:id', asyncHandler(deleteChatFolder));
+router.get('/', asyncHandler(getFoldersByWorkspaceId));
+router.post('/', asyncHandler(createFolder));
+router.put('/:id', asyncHandler(updateFolder));
+router.delete('/:id', asyncHandler(deleteFolder));
 
 module.exports = router;

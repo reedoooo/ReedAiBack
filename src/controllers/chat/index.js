@@ -1,16 +1,15 @@
 module.exports = {
-  ...require('./assistants'),
-  ...require('./chatfiles'),
-  ...require('./collections'),
-  ...require('./files'),
+  ...require('./workspaces'),
   ...require('./folders'),
+  ...require('./files'),
+  ...require('./sessions'),
+  ...require('./assistants'),
+  ...require('./collections'),
   ...require('./messages'),
   ...require('./models'),
   ...require('./presets'),
   ...require('./prompts'),
-  ...require('./sessions'),
   ...require('./stream'),
   ...require('./tools'),
-  ...require('./workspaces'),
 };
 

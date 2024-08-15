@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const authenticate = async (req, res, next) => {
   try {
     const token = req.headers.authorization.split(' ')[1];
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const decodedToken = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const userId = decodedToken.userId;
     logger.info(`User ID: ${userId}`);
     logger.info(`[USER ID AUTHENTICATED] User ID: ${userId}`);
@@ -21,7 +21,7 @@ const authenticate = async (req, res, next) => {
       // Generate a new access token with updated expiration
       const newToken = jwt.sign(
         { userId: user._id },
-        process.env.JWT_SECRET,
+        process.env.JWT_ACCESS_SECRET,
         { expiresIn: '1h' } // Set the desired expiration time for the new token
       );
       // Update the response body with the new token and expiration

@@ -9,7 +9,7 @@ const { getAssistantImage, uploadAssistantImage, getAssistants, createAssistant,
 
 const app = express();
 app.use(express.json());
-app.use('/api/chat/assistants', require('@/routes/chat/Assistants'));
+app.use('/api/chat/assistants', require('../../../../ignore/assistants'));
 
 describe('Chat Assistants Routes', () => {
   it('should get an assistant image', async () => {

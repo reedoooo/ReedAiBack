@@ -7,7 +7,7 @@ const { User, Folder } = require('@/models');
 const passport = require('passport');
 const {
   createWorkspace,
-  createFolder,
+  createFolders,
   createFile,
   createPreset,
   createAssistant,
@@ -145,9 +145,9 @@ const checkDuplicate = async (Model, query) => {
   return existingItem ? existingItem : null;
 };
 const generateTokens = user => {
-  const payload = { userId: user._id };
+  // const payload = { userId: user._id };
   const expiresIn = 60 * 60 * 24; // 24 hours
-  const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn });
+  const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_ACCESS_SECRET, { expiresIn });
   const refreshToken = jwt.sign({ userId: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn });
   return { accessToken, refreshToken, expiresIn };
 };
@@ -181,41 +181,77 @@ const registerUser = async (req, res) => {
     await user.save();
 
     // Initialize user data
-    // const workspace = (await checkDuplicate(Workspace, { userId: user._id })) || (await createWorkspace(user));
-    // Initialize user data
     const workspace = await createWorkspace(user);
-    const folder = new Folder({
-      userId: user._id,
-      workspaceId: workspace._id,
-      name: 'Home Folder',
-      // name: type.charAt(0).toUpperCase() + type.slice(1),
-      type: 'workspace',
-      description: `Default folder for ${workspace}`,
-    });
-    const file = await createFile(user, folder);
-    const preset = await createPreset(user, folder);
-    const assistant = await createAssistant(user, folder, file);
-    const chatSession = await createChatSession(user, workspace, assistant);
-    const prompt = await createPrompt(user, folder);
-    const collection = await createCollection(user, folder);
-    const tool = await createTool(user, folder);
-    const model = await createModel(user, folder);
+    const folders = await createFolders(user, workspace);
 
-    // Update user with created data
-    user.workspaces.push(workspace._id);
-    user.folders.push(folder._id);
-    user.files.push(file._id);
-    user.presets.push(preset._id);
-    user.assistants.push(assistant._id);
-    user.chatSessions.push(chatSession._id);
-    user.prompts.push(prompt._id);
-    user.collections.push(collection._id);
-    user.tools.push(tool._id);
-    user.models.push(model._id);
-    await user.save();
+    // Create items and associate them with folders
+    const file = await createFile(
+      user,
+      folders.find(folder => folder.type === 'files')
+    );
+    const preset = await createPreset(
+      user,
+      folders.find(folder => folder.type === 'presets')
+    );
+    const assistant = await createAssistant(
+      user,
+      folders.find(folder => folder.type === 'assistants'),
+      file
+    );
+    const chatSession = await createChatSession(
+      user,
+      workspace,
+      assistant,
+      folders.find(folder => folder.type === 'chatSessions')
+    );
+    const prompt = await createPrompt(
+      user,
+      folders.find(folder => folder.type === 'prompts')
+    );
+    const collection = await createCollection(
+      user,
+      folders.find(folder => folder.type === 'collections')
+    );
+    const tool = await createTool(
+      user,
+      folders.find(folder => folder.type === 'tools')
+    );
+    const model = await createModel(
+      user,
+      folders.find(folder => folder.type === 'models')
+    );
 
+    // Push items into their respective folders
+    folders.find(folder => folder.type === 'files').items.push(file._id);
+    folders.find(folder => folder.type === 'presets').items.push(preset._id);
+    folders.find(folder => folder.type === 'assistants').items.push(assistant._id);
+    folders.find(folder => folder.type === 'chatSessions').items.push(chatSession._id);
+    folders.find(folder => folder.type === 'prompts').items.push(prompt._id);
+    folders.find(folder => folder.type === 'collections').items.push(collection._id);
+    folders.find(folder => folder.type === 'tools').items.push(tool._id);
+    folders.find(folder => folder.type === 'models').items.push(model._id);
+
+    // Save folders
+    await Promise.all(folders.map(folder => folder.save()));
+
+    // Push item IDs to workspace
+    workspace.files.push(file._id);
+    workspace.presets.push(preset._id);
+    workspace.assistants.push(assistant._id);
+    workspace.chatSessions.push(chatSession._id);
+    workspace.prompts.push(prompt._id);
+    workspace.collections.push(collection._id);
+    workspace.tools.push(tool._id);
+    workspace.models.push(model._id);
+
+    // Save workspace
+    await workspace.save();
+
+    // Push workspace ID to user
     user.workspaces = user.workspaces.includes(workspace._id) ? user.workspaces : [...user.workspaces, workspace._id];
+    user.userId = user._id;
 
+    await user.save();
     logger.info(`User registered: ${user.username}`);
 
     const { accessToken, refreshToken, expiresIn } = generateTokens(user);
@@ -283,7 +319,7 @@ const loginUser = async (req, res, next) => {
         username: user.username,
         email: user.email,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_ACCESS_SECRET,
       { expiresIn }
     );
     const refreshToken = jwt.sign(
@@ -392,7 +428,7 @@ const validateToken = async (req, res) => {
       return res.status(401).send('No token provided');
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     if (!decoded) {
       return res.status(401).send('Invalid token');
     }

@@ -191,6 +191,7 @@ const addCustomPrompt = (req, res) => {
     });
   });
 };
+
 const getAllPngFiles = (req, res) => {
   const directoryPath = path.join(__dirname, '@/public/static/files');
 

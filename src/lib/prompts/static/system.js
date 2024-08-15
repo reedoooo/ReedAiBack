@@ -190,6 +190,9 @@ const systemPrompts = {
 		This will render a simple flowchart with nodes A, B, C, and D.
 		Now, with all the markdowns I've provided, use these to create a [Type of Content Here]; maintaining the markdowns provided.
 		`,
+		UI_LIBRARY: `Develop a front-end component library utilizing AI to generate user-friendly, responsive, and reusable UI components. Ensure that the AI delivers consistent code quality, aligns with design guidelines, and supports various frameworks. Include documentation and examples for each component, and provide functionality to easily integrate the components into different projects or applications.
+
+`
 };
 
 module.exports = {

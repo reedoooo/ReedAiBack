@@ -1,9 +1,9 @@
 const { PineconeStore } = require('@langchain/pinecone');
-const { scrapeContent } = require('../../processing/utils/scrape');
-const { vectorize } = require('../../processing/utils/vectorize');
-const { getPineconeClient } = require('./get');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
+const { getPineconeClient } = require('./get');
+const { scrapeContent } = require('@/utils/processing/utils');
+const { logger } = require('@/config/logging');
 
 const upsertDocs = async (req, res) => {
   const { url, library } = req.body;
@@ -29,7 +29,7 @@ const upsertDocs = async (req, res) => {
 
 		const docs = await textSplitter.createDocuments([content], [{ source: library }]);
 
-		console.log(`Upserting ${docs.length} chunks from ${url}...`);
+		logger.info(`Upserting ${docs.length} chunks from ${url}...`);
 		await vstore.addDocuments(docs);
     // await pinecone.upsertDocs({
     //   namespace: 'library-documents',
@@ -38,7 +38,7 @@ const upsertDocs = async (req, res) => {
 
     res.status(200).send('Documentation upserted successfully.');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).send('Error upserting documentation.');
   }
 };

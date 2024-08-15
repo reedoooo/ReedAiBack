@@ -5,18 +5,16 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const { morganMiddleware } = require('./morganMiddleware');
-const { unifiedErrorHandler } = require('./unifiedErrorHandler');
+const { unifiedErrorHandler } = require('./old/unifiedErrorHandler');
 const path = require('path');
 const session = require('express-session');
 const { db } = require('../config/env');
 
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const { getDB } = require('../db');
 const { User } = require('../models');
 const MongoStore = require('connect-mongo');
-// require('swagger-ui-express');
-// require('swagger-jsdoc');
+const { logger } = require('@/config/logging');
 
 /**
  * Configures and applies middlewares to the Express application.
@@ -47,7 +45,7 @@ const middlewares = app => {
   app.use(express.urlencoded({ extended: true }));
 
   // Parse cookies attached to client requests
-  app.use(cookieParser());
+  app.use(cookieParser(process.env.COOKIE_SECRET));
 
   // Configure CORS settings
   const corsOptions = {
@@ -136,6 +134,7 @@ const middlewares = app => {
 
   // Middleware for handling Server-Sent Events
   app.use(async (req, res, next) => {
+    logger.info('Request Headers:', req.headers);
     if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',

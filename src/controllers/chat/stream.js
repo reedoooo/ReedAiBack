@@ -6,24 +6,31 @@ const { checkApiKey } = require('@/utils/auth');
 // --- CHAT STREAM ---
 const chatStream = async (req, res) => {
   logger.info(`REQUEST BODY: ${JSON.stringify(req.body)}`);
-  const { sessionId, workspaceId, regenerate, prompt, userId, clientApiKey, role } = req.body;
+  const { clientApiKey, userId, workspaceId, sessionId, prompt, role, regenerate, count } = req.body;
   const initializationData = {
+    /* -- User and Data ID Values -- */
     apiKey: clientApiKey || process.env.OPENAI_API_PROJECT_KEY,
-    pineconeIndex: getEnv('PINECONE_INDEX'),
-    namespace: getEnv('PINECONE_NAMESPACE'),
-    embeddingModel: getEnv('OPENAI_API_EMBEDDING_MODEL'),
-    dimensions: parseInt(getEnv('EMBEDDING_MODEL_DIMENSIONS')),
-    completionModel: getEnv('OPENAI_CHAT_COMPLETION_MODEL_2'),
+    providedUserId: userId,
+    providedWorkspaceId: workspaceId,
+    providedSessionId: sessionId,
+    /* -- Provided Query -- */
+    providedPrompt: regenerate ? null : prompt,
+    providedRole: role,
+    /* -- Default Chat Configs -- */
+    sessionLength: count || 0,
     temperature: 0.5,
     maxTokens: 1024,
     topP: 1,
     frequencyPenalty: 0.5,
     presencePenalty: 0,
-    prompt,
-    providedWorkspaceId: workspaceId,
-    providedSessionId: sessionId,
-    userId,
-    role,
+    /* -- Key Values for Accessing RAG Processing APIs -- */
+    searchEngineKey: getEnv('GOOGLE_SERPER_API_KEY'),
+    pineconeEnv: getEnv('PINECONE_ENVIRONMENT'),
+    pineconeIndex: getEnv('PINECONE_INDEX'),
+    namespace: getEnv('PINECONE_NAMESPACE'),
+    dimensions: parseInt(getEnv('EMBEDDING_MODEL_DIMENSIONS')),
+    embeddingModel: getEnv('OPENAI_API_EMBEDDING_MODEL'),
+    completionModel: getEnv('OPENAI_CHAT_COMPLETION_MODEL_2'),
     res,
   };
 

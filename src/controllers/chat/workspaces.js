@@ -1,15 +1,6 @@
 const { default: mongoose } = require('mongoose');
-const logger = require('../../config/logging');
-const {
-  Workspace,
-  ChatSession,
-  Folder,
-  Preset,
-  Tool,
-  Model,
-  Prompt,
-  User,
-} = require('@/models');
+const { Workspace, ChatSession, Folder, Preset, Tool, Model, Prompt, User } = require('@/models');
+const { logger } = require('@/config/logging');
 
 const getAllWorkspaces = async (req, res) => {
   try {
@@ -29,6 +20,23 @@ const getAllUserWorkspaces = async (req, res) => {
   }
 };
 
+const getHomeWorkspace = async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const homeWorkspace = await db.collection('workspaces').findOne({
+      userId: userId,
+      isHome: true,
+    });
+    if (!homeWorkspace) {
+      return res.status(404).json({ error: 'Home workspace not found' });
+    }
+    res.json({ id: homeWorkspace._id });
+  } catch (error) {
+    console.error('Error retrieving home workspace:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 const getWorkspaceById = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id).populate('chatSessions').populate('folders');
@@ -45,54 +53,78 @@ const getWorkspaceById = async (req, res) => {
 const createWorkspace = async (req, res) => {
   try {
     const workspaceData = req.body;
+
+    // Validate required fields
+    if (!workspaceData || !workspaceData.userId || !workspaceData.name) {
+      return res.status(400).json({ error: 'Missing required fields: userId or name' });
+    }
+
+    // Create a new workspace
     const newWorkspace = new Workspace({
       userId: workspaceData.userId,
       name: workspaceData.name,
       active: true,
     });
+
+    // Save the workspace
     const savedWorkspace = await newWorkspace.save();
-    const { prompt, file, folder, tool, model, asisstant } = workspaceData;
+
+    const { prompt, tool, model, folder } = workspaceData;
     const presetData = workspaceData.customPreset;
-    // --- PRESET CREATION ---
+
+    // Create a new preset
     const newCustomPreset = {
       ...presetData,
       userId: workspaceData.userId,
       workspaceId: savedWorkspace._id,
       name: workspaceData.name,
-      includeProfileContext: false, // Set default value or get from request
-      includeWorkspaceInstructions: false, // Set default value or get from request
+      includeProfileContext: false,
+      includeWorkspaceInstructions: false,
       model: workspaceData.model,
-      prompt: '', // Assuming prompt can be an empty string initially
-      sharing: '', // Assuming sharing can be an empty string initially
+      prompt: '',
+      sharing: '',
     };
-    const newPreset = new Preset(newCustomPreset);
-    const savedPreset = await newPreset.save();
-    const newPrompt = new Prompt(prompt);
-    const savedPrompt = await newPrompt.save();
-    const newFolder = new Folder(folder);
-    const savedFolder = await newFolder.save();
-    const newTool = new Tool(tool);
-    const savedTool = await newTool.save();
-    const newModel = new Model(model);
-    const savedModel = await newModel.save();
+    const savedPreset = await new Preset(newCustomPreset).save();
 
+    // Create related documents
+    const savedPrompt = await new Prompt(prompt).save();
+    const savedTool = await new Tool(tool).save();
+    const savedModel = await new Model(model).save();
+
+    // Update workspace with related documents
     savedWorkspace.presets.push(savedPreset._id);
     savedWorkspace.prompts.push(savedPrompt._id);
     savedWorkspace.models.push(savedModel._id);
     savedWorkspace.tools.push(savedTool._id);
-    savedWorkspace.folders.push(savedFolder._id);
     savedWorkspace.selectedPreset = savedPreset._id;
+
+    // Create folders
+    const folderTypes = ['chatSessions', 'assistants', 'files', 'models', 'tools', 'presets', 'prompts', 'collections'];
+
+    const folders = folderTypes.map(type => ({
+      userId: savedWorkspace.userId,
+      workspaceId: savedWorkspace._id,
+      name: `${type}_folder`,
+      type,
+      items: [],
+    }));
+
+    const savedFolders = await Folder.insertMany(folders);
+    const folderIds = savedFolders.map(folder => folder._id);
+
+    // Update workspace with folders
+    await Workspace.findByIdAndUpdate(savedWorkspace._id, { $push: { folders: { $each: folderIds } } }, { new: true });
+
+    // Save the updated workspace
     await savedWorkspace.save();
-    // Push the new workspace ID into the user's workspaces array
-    const user = await User.findById(req.user._id); // Assuming req.user contains the authenticated user's ID
+
+    // Update user with new workspace and preset
+    const user = await User.findById(req.user._id);
     user.workspaces.push(savedWorkspace._id);
     user.presets.push(savedPreset._id);
     await user.save();
-    // await newWorkspace
-    //   .populate(
-    //     'userId chatSessions activeChatSession folders defaultPreset defaultTool defaultModel defaultPrompt defaultCollection defaultFile defaultAssistant'
-    //   )
-    //   .execPopulate();
+
+    // Prepare response
     const responseObj = {
       workspace: await savedWorkspace
         .populate('presets')
@@ -100,12 +132,12 @@ const createWorkspace = async (req, res) => {
         .populate('models')
         .populate('tools')
         .populate('folders')
-        .execPopulate(),
-
-      preset: savedPreset,
+        .populate('chatSessions')
+        .populate('assistants')
+        .populate('files'),
     };
-    logger.info(`responseObj: ${JSON.stringify(responseObj)}`);
-    res.status(201).json(newWorkspace);
+
+    res.status(201).json(responseObj);
   } catch (error) {
     console.error('Error creating workspace:', error);
     res.status(500).json({ error: 'Internal Server Error', message: error.message });

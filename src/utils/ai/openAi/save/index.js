@@ -192,3 +192,4 @@ function isCodeRelated(summary) {
   const codeKeywords = ['code', 'program', 'function', 'variable', 'syntax', 'algorithm'];
   return codeKeywords.some(keyword => summary.includes(keyword));
 }
+

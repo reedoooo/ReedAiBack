@@ -7,19 +7,19 @@ The Cover Letter Generator is a Node.js application designed to help users creat
 ## Table of Contents
 
 1. [Cover Letter Generator](#cover-letter-generator)
-	1. [Overview](#overview)
-	2. [Table of Contents](#table-of-contents)
-	3. [Getting Started](#getting-started)
-		1. [Prerequisites](#prerequisites)
-		2. [Installation](#installation)
-		3. [Environment Setup](#environment-setup)
-	4. [Usage](#usage)
-		1. [Running the Server](#running-the-server)
-		2. [Generating a Cover Letter](#generating-a-cover-letter)
-	5. [Project Structure](#project-structure)
-	6. [Scripts](#scripts)
-	7. [Contributing](#contributing)
-	8. [License](#license)
+   1. [Overview](#overview)
+   2. [Table of Contents](#table-of-contents)
+   3. [Getting Started](#getting-started)
+      1. [Prerequisites](#prerequisites)
+      2. [Installation](#installation)
+      3. [Environment Setup](#environment-setup)
+   4. [Usage](#usage)
+      1. [Running the Server](#running-the-server)
+      2. [Generating a Cover Letter](#generating-a-cover-letter)
+   5. [Project Structure](#project-structure)
+   6. [Scripts](#scripts)
+   7. [Contributing](#contributing)
+   8. [License](#license)
 
 ## Getting Started
 
@@ -57,7 +57,7 @@ Create a `.env` file in the root directory and configure the necessary environme
     ```env
     PORT=3000
     DB_URI=mongodb://localhost:27017/coverLetterGenerator
-    JWT_SECRET=your_jwt_secret
+    JWT_ACCESS_SECRET=your_jwt_secret
     ```
 
 ## Usage

@@ -1,8 +1,8 @@
 // src/messageFactory.js
 // const { HumanMessage, AIMessage, SystemMessage, FunctionMessage, ToolMessage } = require('langchain');
-const { tools } = require('./function');
-const { assistantPrompts } = require('./assistant');
-const { systemPrompts } = require('./system'); // Assuming you have system prompts
+const { tools } = require('./static/tool');
+const { assistantPrompts } = require('./static/assistant');
+const { systemPrompts } = require('./static/system'); // Assuming you have system prompts
 const { HumanMessage, AIMessage, SystemMessage, FunctionMessage, ToolMessage } = require('@langchain/core/messages');
 const { Message } = require('@/models');
 

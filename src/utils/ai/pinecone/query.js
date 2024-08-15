@@ -2,9 +2,8 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 const { OpenAI } = require('@langchain/openai');
 const { loadQAStuffChain } = require('langchain/chains');
 const { Document } = require('langchain/document');
-const { getEnv } = require('../../api');
-const { vectorize } = require('../../processing/utils/vectorize');
 const { getPineconeClient } = require('./get');
+const { vectorize } = require('@/utils/processing/utils');
 
 const queryPineconeVectorStoreAndQueryLLM = async (pinecone, indexName, question, embeddings) => {
   console.log('Querying Pinecone vector store...');

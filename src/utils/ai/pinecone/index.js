@@ -6,7 +6,6 @@
 module.exports = {
   ...require('./create.js'),
   ...require('./main.js'),
-  ...require('../../../../ignore/old.js/index.js'),
   ...require('./update.js'),
   ...require('./query.js'),
   ...require('./get.js'),

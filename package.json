@@ -52,6 +52,7 @@
     "jsdoc": "^4.0.3",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.2.9",
+    "lodash": "^4.17.21",
     "module-alias": "^2.2.3",
     "mongoose": "^8.3.4",
     "mongoose-findorcreate": "^3.0.0",

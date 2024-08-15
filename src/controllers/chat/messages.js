@@ -1,63 +1,104 @@
-const { Message: ChatMessage } = require('@/models');
+const { Message: ChatMessage, ChatSession, Workspace, User } = require('@/models');
 
-const getAllChatMessages = async (req, res) => {
+const getMessagesByChatSessionId = async (req, res) => {
   try {
-    const chatMessages = await ChatMessage.find();
+    const chatMessages = await ChatMessage.find({ sessionId: req.params.sessionId });
+
     res.status(200).json(chatMessages);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching chat messages', error: error.message });
   }
 };
-
-const getChatMessageById = async (req, res) => {
+const getMessageById = async (req, res) => {
   try {
     const chatMessage = await ChatMessage.findById(req.params.id);
-    if (!chatMessage) {
-      return res.status(404).json({ message: 'Chat message not found' });
-    }
+    if (!chatMessage) return res.status(404).json({ message: 'Message not found' });
+
     res.status(200).json(chatMessage);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching chat message', error: error.message });
   }
 };
-
-const createChatMessage = async (req, res) => {
+const createMessage = async (req, res) => {
   try {
-    const newChatMessage = new ChatMessage(req.body);
-    const savedChatMessage = await newChatMessage.save();
-    res.status(201).json(savedChatMessage);
+    const { content, role, userId, sessionId } = req.body;
+    const message = new ChatMessage({ content, role, userId, sessionId });
+
+    await message.save();
+
+    // Update related models
+    await ChatSession.findByIdAndUpdate(sessionId, { $push: { messages: message._id } });
+    await Workspace.updateMany({ chatSessions: sessionId }, { $push: { messages: message._id } });
+    await User.findByIdAndUpdate(userId, { $push: { messages: message._id } });
+
+    res.status(201).json(message);
   } catch (error) {
-    res.status(400).json({ message: 'Error creating chat message', error: error.message });
+    res.status(500).json({ message: 'Error creating chat message', error: error.message });
   }
 };
-
-const updateChatMessage = async (req, res) => {
+const createMessages = async (req, res) => {
   try {
-    const updatedChatMessage = await ChatMessage.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedChatMessage) {
-      return res.status(404).json({ message: 'Chat message not found' });
+    const messages = req.body.messages;
+    const savedMessages = await ChatMessage.insertMany(messages);
+
+    // Update related models
+    for (const message of savedMessages) {
+      await ChatSession.findByIdAndUpdate(message.sessionId, { $push: { messages: message._id } });
+      await Workspace.updateMany({ chatSessions: message.sessionId }, { $push: { messages: message._id } });
+      await User.findByIdAndUpdate(message.userId, { $push: { messages: message._id } });
     }
-    res.status(200).json(updatedChatMessage);
+
+    res.status(201).json(savedMessages);
   } catch (error) {
-    res.status(400).json({ message: 'Error updating chat message', error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
-
-const deleteChatMessage = async (req, res) => {
+const updateMessage = async (req, res) => {
   try {
-    const deletedChatMessage = await ChatMessage.findByIdAndDelete(req.params.id);
-    if (!deletedChatMessage) {
-      return res.status(404).json({ message: 'Chat message not found' });
-    }
-    res.status(200).json({ message: 'Chat message deleted successfully' });
+    const message = await ChatMessage.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!message) return res.status(404).json({ message: 'Message not found' });
+    res.status(200).json(message);
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting chat message', error: error.message });
+    res.status(500).json({ message: 'Error updating chat message', error: error.message });
+  }
+};
+const deleteMessage = async (req, res) => {
+  try {
+    const message = await ChatMessage.findByIdAndDelete(req.params.id);
+    if (!message) return res.status(404).json({ message: 'Message not found' });
+
+    // Remove message references from related models
+    await ChatSession.updateMany({}, { $pull: { messages: message._id } });
+    await Workspace.updateMany({}, { $pull: { messages: message._id } });
+    await User.updateMany({}, { $pull: { messages: message._id } });
+
+    res.status(200).json({ message: 'Message deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+// Delete messages including and after a certain sequence number
+const deleteMessagesIncludingAndAfter = async (req, res) => {
+  try {
+    const { userId, sessionId, sequenceNumber } = req.body;
+    const messages = await ChatMessage.deleteMany({ sessionId, sequenceNumber: { $gte: sequenceNumber } });
+
+    // Remove message references from related models
+    await ChatSession.updateMany({}, { $pull: { messages: { $in: messages.map(m => m._id) } } });
+    await Workspace.updateMany({}, { $pull: { messages: { $in: messages.map(m => m._id) } } });
+    await User.updateMany({}, { $pull: { messages: { $in: messages.map(m => m._id) } } });
+
+    res.status(200).json({ message: `Deleted ${messages.deletedCount} messages` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 module.exports = {
-  getAllChatMessages,
-  getChatMessageById,
-  createChatMessage,
-  updateChatMessage,
-  deleteChatMessage,
+  getMessagesByChatSessionId,
+  getMessageById,
+  createMessage,
+  createMessages,
+  updateMessage,
+  deleteMessage,
+  deleteMessagesIncludingAndAfter,
 };

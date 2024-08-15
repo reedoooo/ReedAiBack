@@ -76,7 +76,6 @@ const analyzeImage = {
     // Function logic or reference here (e.g., analyzeImageWithVisionAPI)
   },
 };
-
 const tools = [
   summarizeFunction,
   fetchSearchResults,

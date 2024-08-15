@@ -1,6 +1,6 @@
-const { ChatSession, Message, User } = require('../index.js');
 const { getMainSystemMessageContent } = require('@/lib/prompts/createPrompt.js');
 const { logger } = require('@/config/logging/logger.js');
+const { Message, ChatSession, Workspace, User } = require('@/models');
 
 const createMessage = async (sessionId, role, content, userId, sequenceNumber) => {
   const message = new Message({
@@ -41,7 +41,7 @@ const getSessionMessages = async sessionId => {
       (msg, index, self) => msg && index === self.findIndex(m => m.content === msg.content)
     );
 
-    const systemPrompt = getMainSystemMessageContent().content;
+    const systemPrompt = getMainSystemMessageContent();
     const systemMessageIndex = chatMessages.findIndex(msg => msg.role === 'system');
     if (systemMessageIndex !== -1) {
       await Message.findByIdAndUpdate(chatMessages[systemMessageIndex]._id, { content: systemPrompt });
@@ -65,64 +65,86 @@ const getSessionMessages = async sessionId => {
   }
 };
 
-const initializeChatSession = async (sessionId, workspaceId, userId, prompt) => {
+const initializeChatSession = async (providedSessionId, providedWorkspaceId, userId, prompt, sessionLength) => {
   try {
-    let chatSession = await ChatSession.findById({
-      _id: sessionId,
-    });
-    if (!chatSession) {
-      // const newMessage = await createMessage(sessionId, 'user', prompt, userId, 1);
-      chatSession = new ChatSession({
-        name: `Chat ${sessionId}`,
-        workspaceId,
-        userId,
-        topic: 'New Chat',
-        active: true,
-        model: 'gpt-4-1106-preview',
-        settings: {
-          maxTokens: 1000,
-          temperature: 0.7,
-          topP: 1.0,
-          n: 1,
-        },
-        messages: [],
-        systemPrompt: null,
-        tools: [],
-        files: [],
-        summary: '',
-        active: true,
-        model: 'gpt-4-1106-preview',
-        topic: prompt,
-        stats: {
-          tokenUsage: 0,
-          messageCount: 0,
-        },
-        settings: {
-          contextCount: 15,
-          maxTokens: 500, // max length of the completion
-          temperature: 0.7,
-          model: 'gpt-4-1106-preview',
-          topP: 1,
-          n: 4,
-          debug: false,
-          summarizeMode: false,
-        },
-
-        tuning: {
-          debug: false,
-          summary: '',
-          summarizeMode: false,
-        },
+    let chatSession;
+    if (providedSessionId & providedWorkspaceId & userId) {
+      chatSession = await ChatSession.findById({
+        _id: providedSessionId,
       });
-      logger.info(`Created new chat session: ${chatSession._id}`);
-      await chatSession.save();
-      const user = await User.findById(userId);
-      if (user) {
-        user.chatSessions.push(chatSession._id);
-        await user.save();
-        logger.info(`Added chat session ${chatSession._id} to user ${user._id}`);
-      } else {
-        throw new Error('User not found');
+    }
+
+    if (!chatSession) {
+      logger.info(`[ATTEMPTING SESSION CREATION] WORKSPACE: ${providedWorkspaceId} USER: ${userId}`);
+      try {
+        chatSession = new ChatSession({
+          name: `${prompt}-${providedWorkspaceId}`,
+          workspaceId: providedWorkspaceId,
+          userId: userId,
+          topic: prompt,
+          active: true,
+          model: 'gpt-4-1106-preview',
+          settings: {
+            maxTokens: 2000,
+            temperature: 0.9,
+            topP: 1.0,
+          },
+          messages: [],
+          systemPrompt: null,
+          tools: [],
+          files: [],
+          summary: '',
+          active: true,
+          model: 'gpt-4-1106-preview',
+          topic: prompt,
+          stats: {
+            tokenUsage: 0,
+            messageCount: 0,
+          },
+          settings: {
+            contextCount: 15,
+            maxTokens: 500, // max length of the completion
+            temperature: 0.7,
+            model: 'gpt-4-1106-preview',
+            topP: 1,
+            n: 4,
+            debug: false,
+            summarizeMode: false,
+          },
+          tuning: {
+            debug: false,
+            summary: '',
+            summarizeMode: false,
+          },
+        });
+        await chatSession.save();
+        logger.info(`Session Creation Successful: ${chatSession._id}`);
+        const workspace = await Workspace.findById(providedWorkspaceId);
+        if (workspace) {
+          workspace.chatSessions.push(chatSession._id);
+          await workspace.save();
+          logger.info(`Added chat session ${chatSession._id} to workspace ${workspace._id}`);
+        } else {
+          throw new Error('Workspace not found');
+        }
+        const user = await User.findById(userId);
+        if (user) {
+          user.chatSessions.push(chatSession._id);
+          await user.save();
+          logger.info(`Added chat session ${chatSession._id} to user ${user._id}`);
+        } else {
+          throw new Error('User not found');
+        }
+      } catch (error) {
+        logger.error(
+        `Error initializing chat session:
+        [message][${error.message}]
+        [error][${error}]
+        [sessionId] ${providedSessionId}
+        [userId] ${userId},`,
+          error
+        );
+        throw error;
       }
     }
 
@@ -134,7 +156,14 @@ const initializeChatSession = async (sessionId, workspaceId, userId, prompt) => 
     await chatSession.save();
     return chatSession;
   } catch (error) {
-    logger.error('Error initializing chat session:', error.message);
+    logger.error(
+      `Error initializing chat session:
+      [message][${error.message}]
+      [error][${error}]
+      [sessionId] ${providedSessionId}
+      [userId] ${userId},`,
+      error
+    );
     throw error;
   }
 };

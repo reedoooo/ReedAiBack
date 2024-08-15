@@ -12,7 +12,7 @@ const initializeOpenAI = (apiKey, chatSession, completionModel) => {
     modelName: completionModel,
     temperature: chatSession.settings.temperature,
     maxTokens: chatSession.settings.maxTokens,
-    streamUsage: true,
+    // streamUsage: true,
     streaming: true,
     openAIApiKey: apiKey || process.env.OPENAI_API_PROJECT_KEY,
     organization: 'reed_tha_human',
@@ -111,11 +111,24 @@ const initializeChatHistory = chatSession => {
 };
 
 const handleSummarization = async (messages, chatOpenAI) => {
-  const summary = await summarizeMessages(messages.slice(-5), chatOpenAI);
-  const { overallSummaryString, individualSummariesArray } = extractSummaries(summary);
-  logger.info(`Overall Summary: ${overallSummaryString}`);
-  logger.info(`Individual Summaries: ${JSON.stringify(individualSummariesArray)}`);
-  return summary;
+  try {
+    const summary = await summarizeMessages(messages.slice(-5), chatOpenAI);
+    const { overallSummaryString, individualSummariesArray } = extractSummaries(summary);
+    logger.info(`Overall Summary: ${overallSummaryString}`);
+    logger.info(`Individual Summaries: ${JSON.stringify(individualSummariesArray)}`);
+    return summary;
+  } catch (error) {
+    logger.error('Error in chatOpenAI.completionWithRetry:', error);
+    logger.error(
+      `Error in chatOpenAI.completionWithRetry:
+      [message][${error.message}]
+      [error][${error}]
+      [sessionId] ${providedSessionId}
+      [userId] ${userId},`,
+      error
+    );
+    throw error;
+  }
 };
 
 module.exports = {

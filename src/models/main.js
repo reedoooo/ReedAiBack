@@ -43,13 +43,27 @@ const profileSchema = new Schema(
     img: { type: String, default: profileImagePath },
     imagePath: { type: String, default: profileImagePath },
     profileImages: { type: Array, default: [] },
-    selectedProfileImage: { type: String, default: 'path/to/default/image' },
+    selectedProfileImage: { type: String, default: profileImagePath },
     filename: { type: String, default: 'avatar1.png' },
     bio: { type: String },
     displayName: { type: String },
+    username: { type: String },
     hasOnboarded: { type: Boolean, default: false },
     identity: identitySchema,
     openai: openAiSchema,
+    envKeyMap: {
+      type: Map,
+      of: String,
+      default: {
+        openaiApiKey: '',
+        openaiOrgId: '',
+        anthropicApiKey: '',
+        googleGeminiApiKey: '',
+        mistralApiKey: '',
+        groqAPIKey: '',
+        perplexityApiKey: '',
+      },
+    },
     stats: {
       totalMessages: { type: Number, default: 0 },
       totalTokenCount: { type: Number, default: 0 },
@@ -192,101 +206,27 @@ const userSchema = new Schema(
 );
 userSchema.plugin(passportLocalMongoose);
 
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ username: 1 }, { unique: true });
+// userSchema.index({ email: 1 }, { unique: true });
+// userSchema.index({ username: 1 }, { unique: true });
 // =============================
 // [WORKSPACES]
 //  - The workspace schema is used to store information workspaces in the chat.
-//  - Workspaces are used to organize chats, files, and other resources.
+//  - Workspaces are used to organize chatSessions, files, and other resources.
 //  - The primary data within each workspaces is:
 //    - Active Chat Session: The active chat session within the workspace.
 //    - Folders: An array of folders within the workspace.
 // =============================
 const workspaceSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  chatSessions: [{ type: Schema.Types.ObjectId, ref: 'ChatSession' }],
   folders: [{ type: Schema.Types.ObjectId, ref: 'Folder' }],
+  files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
+  chatSessions: [{ type: Schema.Types.ObjectId, ref: 'ChatSession' }],
+  assistants: [{ type: Schema.Types.ObjectId, ref: 'Assistant' }],
   tools: [{ type: Schema.Types.ObjectId, ref: 'Tool' }],
   presets: [{ type: Schema.Types.ObjectId, ref: 'Preset' }],
-  assistants: [{ type: Schema.Types.ObjectId, ref: 'Assistant' }],
   prompts: [{ type: Schema.Types.ObjectId, ref: 'Prompt' }],
   models: [{ type: Schema.Types.ObjectId, ref: 'Model' }],
-
-  // defaultPreset: {
-  //   type: Schema.Types.ObjectId,
-  //   ref: 'Preset',
-  //   default: {
-  //     name: 'Default Preset',
-  //     description: 'A default preset.',
-  //     contextLength: 15,
-  //     model: 'gpt-4-1106-preview',
-  //     prompt: 'A default prompt.',
-  //     temperature: 0.7,
-  //     embeddingsProvider: 'openai',
-  //     includeProfileContext: true,
-  //     includeWorkspaceInstructions: true,
-  //     sharing: 'private',
-  //   },
-  // },
-  // defaultTool: {
-  //   type: Schema.Types.ObjectId,
-  //   ref: 'Tool',
-  //   default: {
-  //     name: 'Default Tool',
-  //     description: 'A default tool.',
-  //     instructions: 'A default tool.',
-  //     sharing: 'private',
-  //   },
-  // },
-  // defaultModel: {
-  //   type: Schema.Types.ObjectId,
-  //   ref: 'Model',
-  //   default: {
-  //     name: 'Default Model',
-  //     description: 'A default model.',
-  //     contextLength: 15,
-  //     maxToken: 500,
-  //     defaultToken: 100,
-  //     isDefault: true,
-  //   },
-  // },
-  // defaultPrompt: {
-  //   type: Schema.Types.ObjectId,
-  //   ref: 'Prompt',
-  //   default: {
-  //     name: 'Default Prompt',
-  //     content: 'A default prompt.',
-  //     sharing: 'private',
-  //   },
-  // },
-  // defaultCollection: {
-  //   type: Schema.Types.ObjectId,
-  //   ref: 'Collection',
-  //   default: {
-  //     name: 'Default Collection',
-  //     description: 'A default collection.',
-  //     sharing: 'private',
-  //   },
-  // },
-  // defaultFile: {
-  //   type: Schema.Types.ObjectId,
-  //   ref: 'File',
-  //   default: {
-  //     name: 'Default File',
-  //     description: 'A default file.',
-  //     sharing: 'private',
-  //   },
-  // },
-  // defaultAssistant: {
-  //   type: Schema.Types.ObjectId,
-  //   ref: 'Assistant',
-  //   default: {
-  //     name: 'Default Assistant',
-  //     description: 'A default assistant.',
-  //     instructions: 'A default assistant.',
-  //     sharing: 'private',
-  //   },
-  // },
+  collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
 
   selectedPreset: { type: Schema.Types.ObjectId, ref: 'Preset' },
   name: { type: String, required: false },
@@ -302,56 +242,43 @@ const workspaceSchema = createSchema({
   includeProfileContext: { type: Boolean },
   includeWorkspaceInstructions: { type: Boolean },
   isHome: { type: Boolean, default: false },
+  activeSessionId: String,
 
   type: {
     type: String,
     required: false,
-    enum: ['profile', 'workspace', 'assistant', 'collection', 'model', 'tool', 'preset'],
+    enum: ['profile', 'home', 'assistant', 'collection', 'model', 'tool', 'preset', 'prompt', 'file'],
   },
 });
-
 // =============================
 // [FOLDERS] name, workspaceId
 // =============================
 const folderSchema = createSchema({
+  // Critical
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-  files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
-  collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
-  models: [{ type: Schema.Types.ObjectId, ref: 'Model' }],
-  tools: [{ type: Schema.Types.ObjectId, ref: 'Tool' }],
-  presets: [{ type: Schema.Types.ObjectId, ref: 'Preset' }],
-  prompts: [{ type: Schema.Types.ObjectId, ref: 'Prompt' }],
-
+  name: { type: String, required: false },
   description: { type: String, required: false },
-  name: { type: String, required: false, unique: true, index: true },
-  parent: { type: Schema.Types.ObjectId, ref: 'Folder' },
-  subfolders: [{ type: Schema.Types.ObjectId, ref: 'Folder' }],
-
   type: {
     type: String,
     required: false,
-    enum: [
-      'chats',
-      'files',
-      'models',
-      'tool',
-      'tools',
-      'presets',
-      'prompts',
-      'collections',
-      'assistants',
-      'chat',
-      'file',
-      'model',
-      'tool',
-      'preset',
-      'prompt',
-      'collection',
-      'chatSession',
-      'assistant',
-    ],
+    enum: ['chatSessions', 'assistants', 'files', 'models', 'tool', 'tools', 'presets', 'prompts', 'collections'],
   },
+  items: {
+    type: Array,
+    required: false,
+    // default [],
+  },
+  // Extra
+  parent: { type: Schema.Types.ObjectId, ref: 'Folder' },
+  subfolders: [{ type: Schema.Types.ObjectId, ref: 'Folder' }],
 });
+// files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
+// collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
+// models: [{ type: Schema.Types.ObjectId, ref: 'Model' }],
+// tools: [{ type: Schema.Types.ObjectId, ref: 'Tool' }],
+// presets: [{ type: Schema.Types.ObjectId, ref: 'Preset' }],
+// prompts: [{ type: Schema.Types.ObjectId, ref: 'Prompt' }],
 // =============================
 // [PROMPTS] createdBy, name, role, content, description, tags
 // =============================
@@ -361,6 +288,7 @@ const promptSchema = createSchema({
   folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
   name: String,
   role: String,
+  type: String,
   content: String,
   description: String,
   sharing: String,
@@ -372,8 +300,8 @@ const promptSchema = createSchema({
     type: Map,
     of: Schema.Types.Mixed,
     default: {
-      label: 'default prompt',
-      text: 'A default prompt.',
+      name: 'default prompt',
+      content: 'A default prompt.',
       createdBy: 'default',
       description: '',
       type: '',
@@ -491,7 +419,8 @@ const userActiveChatSessionSchema = createSchema({
 const chatSessionSchema = createSchema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-  activeSessionId: { type: Schema.Types.ObjectId, ref: 'UserActiveChatSession' },
+  folderId: { type: Schema.Types.ObjectId, ref: 'Folder' },
+  // activeSessionId: { type: Schema.Types.ObjectId, ref: 'UserActiveChatSession' },
   assistantId: { type: Schema.Types.ObjectId, ref: 'Assistant' },
 
   systemPrompt: { type: Schema.Types.ObjectId, ref: 'Prompt' },
@@ -504,10 +433,10 @@ const chatSessionSchema = createSchema({
   ],
   files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
 
-  name: { type: String, required: false },
-  topic: { type: String, required: false },
-  active: { type: Boolean, required: false },
-  model: { type: String, required: false },
+  name: { type: String, required: false, default: 'Default Chat Session' },
+  topic: { type: String, required: false, default: 'No Topic' },
+  model: { type: String, required: false, default: 'gpt-4-turbo-preview' },
+  active: { type: Boolean, required: false, default: true },
   summary: {
     type: mongoose.Schema.Types.Mixed, // Allows storing any data type, including objects
     required: false,
@@ -522,13 +451,83 @@ const chatSessionSchema = createSchema({
     of: Schema.Types.Mixed,
     default: {
       contextCount: 15,
-      maxTokens: 500, // max length of the completion
+      maxTokens: 2000, // max length of the completion
       temperature: 0.7,
       model: 'gpt-4-1106-preview',
       topP: 1,
       n: 4,
       debug: false,
       summarizeMode: false,
+    },
+  },
+  langChainSettings: {
+    type: Map,
+    of: Schema.Types.Mixed,
+    default: {
+      maxTokens: 2000, // max length of the completion
+      temperature: 0.7,
+      modelName: '',
+      // streamUsage: true,
+      streaming: true,
+      openAIApiKey: '',
+      organization: 'reed_tha_human',
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'summarize_messages',
+            description:
+              'Summarize a list of chat messages with an overall summary and individual message summaries including their IDs',
+            parameters: {
+              type: 'object',
+              properties: {
+                overallSummary: {
+                  type: 'string',
+                  description: 'An overall summary of the chat messages',
+                },
+                individualSummaries: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: {
+                        type: 'string',
+                        description: 'The ID of the chat message',
+                      },
+                      summary: {
+                        type: 'string',
+                        description: 'A summary of the individual chat message',
+                      },
+                    },
+                    required: ['id', 'summary'],
+                  },
+                },
+              },
+              required: ['overallSummary', 'individualSummaries'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'fetchSearchResults',
+            description:
+              'Fetch search results for a given query using SERP API used to aid in being  PRIVATE INVESTIGATOR',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Query string to search for',
+                },
+              },
+              required: ['query'],
+            },
+          },
+        },
+      ],
+      code_interpreter: 'auto',
+      function_call: 'auto',
     },
   },
   tuning: {
@@ -540,8 +539,9 @@ const chatSessionSchema = createSchema({
       summarizeMode: { type: Boolean, required: false },
     },
   },
+  activeSessionId: { type: String, required: false },
 });
-chatSessionSchema.index({ userId: 1, workspaceId: 1, name: 1 }, { unique: true });
+// chatSessionSchema.index({ userId: 1, workspaceId: 1, name: 1 }, { unique: true });
 chatSessionSchema.pre('save', async function (next) {
   this.updatedAt = Date.now();
 
@@ -825,3 +825,79 @@ module.exports = {
   ...schemas,
   ...models,
 };
+
+// defaultPreset: {
+//   type: Schema.Types.ObjectId,
+//   ref: 'Preset',
+//   default: {
+//     name: 'Default Preset',
+//     description: 'A default preset.',
+//     contextLength: 15,
+//     model: 'gpt-4-1106-preview',
+//     prompt: 'A default prompt.',
+//     temperature: 0.7,
+//     embeddingsProvider: 'openai',
+//     includeProfileContext: true,
+//     includeWorkspaceInstructions: true,
+//     sharing: 'private',
+//   },
+// },
+// defaultTool: {
+//   type: Schema.Types.ObjectId,
+//   ref: 'Tool',
+//   default: {
+//     name: 'Default Tool',
+//     description: 'A default tool.',
+//     instructions: 'A default tool.',
+//     sharing: 'private',
+//   },
+// },
+// defaultModel: {
+//   type: Schema.Types.ObjectId,
+//   ref: 'Model',
+//   default: {
+//     name: 'Default Model',
+//     description: 'A default model.',
+//     contextLength: 15,
+//     maxToken: 500,
+//     defaultToken: 100,
+//     isDefault: true,
+//   },
+// },
+// defaultPrompt: {
+//   type: Schema.Types.ObjectId,
+//   ref: 'Prompt',
+//   default: {
+//     name: 'Default Prompt',
+//     content: 'A default prompt.',
+//     sharing: 'private',
+//   },
+// },
+// defaultCollection: {
+//   type: Schema.Types.ObjectId,
+//   ref: 'Collection',
+//   default: {
+//     name: 'Default Collection',
+//     description: 'A default collection.',
+//     sharing: 'private',
+//   },
+// },
+// defaultFile: {
+//   type: Schema.Types.ObjectId,
+//   ref: 'File',
+//   default: {
+//     name: 'Default File',
+//     description: 'A default file.',
+//     sharing: 'private',
+//   },
+// },
+// defaultAssistant: {
+//   type: Schema.Types.ObjectId,
+//   ref: 'Assistant',
+//   default: {
+//     name: 'Default Assistant',
+//     description: 'A default assistant.',
+//     instructions: 'A default assistant.',
+//     sharing: 'private',
+//   },
+// },

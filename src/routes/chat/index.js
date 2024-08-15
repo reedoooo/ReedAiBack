@@ -1,5 +1,3 @@
-const chatAssistantRoutes = require('./assistants');
-const chatFilesRoutes = require('./chatfiles');
 const chatCollectionRoutes = require('./collections');
 const filesRoutes = require('./files');
 const chatFolderRoutes = require('./folders');
@@ -11,11 +9,8 @@ const chatSessionRoutes = require('./sessions');
 const chatStreamRoutes = require('./stream');
 const chatToolsRoutes = require('./tools');
 const workspaceRoutes = require('./workspaces');
-const vectorRoutes = require('./vectors');
 
 module.exports = {
-  chatAssistantRoutes,
-  chatFilesRoutes,
   chatCollectionRoutes,
   filesRoutes,
   chatFolderRoutes,
@@ -27,7 +22,6 @@ module.exports = {
   chatStreamRoutes,
   chatToolsRoutes,
   workspaceRoutes,
-  vectorRoutes,
 };
 // module.exports = {
 //   chatAssistantRoutes,

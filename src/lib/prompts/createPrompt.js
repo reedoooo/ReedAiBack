@@ -1,7 +1,7 @@
 const { ToolMessage, SystemMessage, HumanMessage } = require('@langchain/core/messages');
-const { assistantPrompts } = require('./assistant');
-const { tools, toolPrompts } = require('./function');
-const { systemPrompts } = require('./system');
+const { assistantPrompts } = require('./static/assistant');
+const { tools, toolPrompts } = require('./static/tool');
+const { systemPrompts } = require('./static/system');
 const { SystemMessagePromptTemplate } = require('@langchain/core/prompts');
 
 const getPromptByName = (type, name) => {

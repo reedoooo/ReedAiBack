@@ -14,29 +14,35 @@ const {
   Tool,
   JwtSecret,
 } = require('@/models'); // Adjust the path as needed
+const { uniqueId } = require('lodash');
 const createWorkspace = async user => {
   const workspaceData = {
     userId: user._id,
-    chatSessions: [],
     folders: [],
+    files: [],
+    chatSessions: [],
+    assistants: [],
+    tools: [],
+    presets: [],
+    prompts: [],
+    models: [],
+    collections: [],
 
+    selectedPreset: null,
     name: 'Home Workspace',
-    description: 'Home workspace for the user',
     imagePath: 'http://localhost:3001/static/files/avatar3.png',
     active: true,
 
     defaultContextLength: 4000,
-    defaultModel: 'gpt-4-turbo-preview',
-    defaultSystemPrompt: getMainSystemMessageContent().content,
-    defaultAssistantPrompt: getMainAssistantMessageInstructions().content,
-    defaultTemperature: 0.7,
+    defaultTemperature: 0.9,
+
     embeddingsProvider: 'openai',
     instructions: '',
     sharing: 'private',
     includeProfileContext: false,
     includeWorkspaceInstructions: false,
     isHome: true,
-    type: 'workspace',
+    type: 'home',
   };
 
   const workspace = new Workspace(workspaceData);
@@ -44,33 +50,50 @@ const createWorkspace = async user => {
   return workspace;
 };
 
-const createFolder = async (user, workspace, name, description, type) => {
-  let uniqueName = name;
-  let counter = 1;
-  while (await Folder.exists({ userId: user._id, workspaceId: workspace._id, name: uniqueName })) {
-    uniqueName = `${name}-${counter}`;
-    counter += 1;
+const createFolders = async (user, workspace) => {
+  const folderTypes = [
+    'chatSessions',
+    'assistants',
+    'files',
+    'models',
+    'tool',
+    'tools',
+    'presets',
+    'prompts',
+    'collections',
+  ];
+
+  const folders = [];
+
+  for (const type of folderTypes) {
+    let uniqueName = uniqueId(`${type}_folder`);
+    let counter = 1;
+
+    // Ensure the folder name is unique within the user's workspace
+    while (await Folder.exists({ userId: user._id, workspaceId: workspace._id, name: uniqueName })) {
+      uniqueName = `${type}_folder-${counter}`;
+      counter += 1;
+    }
+
+    const folderData = {
+      userId: user._id,
+      workspaceId: workspace._id,
+      name: uniqueName,
+      description: `${type} folder`, // Default description, can be customized
+      type: type,
+      items: [],
+    };
+
+    const folder = new Folder(folderData);
+    await folder.save();
+    folders.push(folder);
+    workspace.folders.push(folder._id);
+    await workspace.save();
+    user.folders.push(folder._id);
+    await user.save();
   }
 
-  const folderData = {
-    userId: user._id,
-    workspaceId: workspace._id,
-    files: [],
-    collections: [],
-    models: [],
-    tools: [],
-    presets: [],
-    prompts: [],
-    description,
-    name: uniqueName,
-    parent: null,
-    subfolders: [],
-    type,
-  };
-
-  const folder = new Folder(folderData);
-  await folder.save();
-  return folder;
+  return folders;
 };
 
 const createFile = async (user, folder) => {
@@ -79,7 +102,7 @@ const createFile = async (user, folder) => {
     folderId: folder._id,
     name: 'Deep Learning Research.pdf',
     description: 'A comprehensive paper on deep learning.',
-    filePath: '/public/files/default.pdf',
+    filePath: '/public/static/files/defaultFiles/default.pdf',
     data: null,
     size: 2048,
     tokens: 3500,
@@ -96,6 +119,44 @@ const createFile = async (user, folder) => {
   const file = new File(fileData);
   await file.save();
   return file;
+};
+
+const createChatSession = async (user, workspace, assistant, folder) => {
+  const chatSessionData = {
+    name: 'First Chat',
+    topic: 'Getting Started',
+    userId: user._id,
+    workspaceId: workspace._id,
+    assistantId: assistant._id,
+    folder: folder._id,
+    model: 'gpt-4-turbo-preview',
+    prompt: "Let's start our first conversation.",
+    active: true,
+    activeSessionId: null,
+    settings: {
+      maxTokens: 500,
+      temperature: 0.7,
+      model: 'gpt-4-turbo-preview',
+      topP: 1,
+      n: 1,
+      debug: false,
+      summarizeMode: false,
+    },
+    messages: [],
+    stats: {
+      tokenUsage: 0,
+      messageCount: 0,
+    },
+    tuning: {
+      debug: false,
+      summary: '',
+      summarizeMode: false,
+    },
+  };
+
+  const chatSession = new ChatSession(chatSessionData);
+  await chatSession.save();
+  return chatSession;
 };
 
 const createPreset = async (user, folder) => {
@@ -146,43 +207,6 @@ const createAssistant = async (user, folder, file) => {
   const assistant = new Assistant(assistantData);
   await assistant.save();
   return assistant;
-};
-
-const createChatSession = async (user, workspace, assistant) => {
-  const chatSessionData = {
-    name: 'First Chat',
-    topic: 'Getting Started',
-    userId: user._id,
-    workspaceId: workspace._id,
-    assistantId: assistant._id,
-    model: 'gpt-4-turbo-preview',
-    prompt: "Let's start our first conversation.",
-    active: true,
-    activeSessionId: null,
-    settings: {
-      maxTokens: 500,
-      temperature: 0.7,
-      model: 'gpt-4-turbo-preview',
-      topP: 1,
-      n: 1,
-      debug: false,
-      summarizeMode: false,
-    },
-    messages: [],
-    stats: {
-      tokenUsage: 0,
-      messageCount: 0,
-    },
-    tuning: {
-      debug: false,
-      summary: '',
-      summarizeMode: false,
-    },
-  };
-
-  const chatSession = new ChatSession(chatSessionData);
-  await chatSession.save();
-  return chatSession;
 };
 
 const createPrompt = async (user, folder) => {
@@ -249,7 +273,7 @@ const createModel = async (user, folder) => {
 
 module.exports = {
   createWorkspace,
-  createFolder,
+  createFolders,
   createFile,
   createPreset,
   createAssistant,

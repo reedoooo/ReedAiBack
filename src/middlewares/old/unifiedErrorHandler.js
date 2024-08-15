@@ -1,5 +1,5 @@
 const multer = require('multer');
-const logger = require('../config/logging/index.js');
+const logger = require('../../config/logging/index.js');
 function serializeError(error) {
   if (process.env.NODE_ENV !== 'production') {
     const errorDetails = {
@@ -22,7 +22,7 @@ const unifiedErrorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     logger.warn(`[HEADERS SENT] ${res.headersSent}`);
     return next(err);
-  };
+  }
 
   const message = err.message || 'Internal Server Error';
   logger.error(`[ERROR] ${message}`);

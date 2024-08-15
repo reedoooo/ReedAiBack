@@ -10,30 +10,37 @@ const { initializeChatSession, getSessionMessages, createMessage } = require('@/
 const { PineconeStore } = require('@langchain/pinecone');
 const { StreamResponseHandler } = require('./handlers.js');
 const { PromptTemplate } = require('@langchain/core/prompts');
+const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { createPineconeIndex } = require('@/utils/ai/pinecone/create.js');
 const { logger } = require('@/config/logging');
 const { getMainSystemMessageContent, getMainAssistantMessageInstructions } = require('@/lib/prompts/createPrompt');
-const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 
 const streamWithCompletion = async data => {
   const {
     apiKey,
+    providedUserId: userId,
+    providedWorkspaceId,
+    providedSessionId,
+    providedPrompt: prompt,
+    providedRole: role,
+    sessionLength,
     pineconeIndex,
     namespace,
     embeddingModel,
     dimensions,
     completionModel,
-    prompt,
-    providedWorkspaceId,
-    providedSessionId,
-    userId,
-    role,
     res,
   } = data;
 
   try {
     // Initialize session
-    const chatSession = await initializeChatSession(providedSessionId, providedWorkspaceId, userId, prompt);
+    const chatSession = await initializeChatSession(
+      providedSessionId,
+      providedWorkspaceId,
+      userId,
+      prompt,
+      sessionLength
+    );
 
     // Initialize OpenAI
     const chatOpenAI = initializeOpenAI(apiKey, chatSession, completionModel);
@@ -49,9 +56,11 @@ const streamWithCompletion = async data => {
 
     // Get session messages
     const messages = (await getSessionMessages(chatSession._id)) || [];
+    logger.info(`[CHECK][5]: ${JSON.stringify(messages)} ${messages}}`, messages);
 
     // Summarize messages
     const summary = await handleSummarization(messages, chatOpenAI);
+    logger.info(`[CHECK][6]: ${JSON.stringify(summary)}`, summary);
 
     await chatHistory.addUserMessage(prompt);
     const newUserMessageId = await createMessage(
@@ -64,6 +73,7 @@ const streamWithCompletion = async data => {
     chatSession.messages.push(newUserMessageId);
     chatSession.summary = summary;
     await chatSession.save();
+    logger.info(`[CHECK][7]: ${JSON.stringify(newUserMessageId)}`, newUserMessageId);
 
     // Pinecone query vector store setup
     const vectorQueryStore = await PineconeStore.fromExistingIndex(embedder, {
@@ -71,6 +81,7 @@ const streamWithCompletion = async data => {
       namespace: 'chat-history',
       textKey: 'text',
     });
+    logger.info(`[CHECK][8]: ${JSON.stringify(vectorQueryStore)}`, vectorQueryStore);
 
     // Pinecone document vector store setup
     const vectorStore = await PineconeStore.fromExistingIndex(embedder, {
@@ -90,9 +101,8 @@ const streamWithCompletion = async data => {
     const dbSearchResults = relevantDocs.map(doc => doc.pageContent).join('\n');
     // Prompt template setup
     const promptTemplate = new PromptTemplate({
-      template:
-        'Chat Context: {context}\n\nRelevant Document Data from Local Database Search: {dbSearchResults}\n\nSummary of previous messages: {summary}\n\nUser: {prompt}\nAI:',
-      inputVariables: ['context', 'summary', 'prompt', 'dbSearchResults'],
+      template: 'Chat Context: {context}\n\nSummary of previous messages: {summary}\n\nUser: {prompt}\nAI:',
+      inputVariables: ['context', 'summary', 'prompt'],
     });
     const formattedPrompt = await promptTemplate.format({ context, summary, prompt, dbSearchResults });
     // Stream response handler
@@ -134,6 +144,7 @@ const streamWithCompletion = async data => {
       result = await chatOpenAI.completionWithRetry({
         model: completionModel,
         messages: [
+          // ...messages,
           {
             role: 'system',
             content: systemContent,
@@ -145,9 +156,9 @@ const streamWithCompletion = async data => {
         ],
         // messages: [...messages, { role: 'user', content: formattedPrompt }],
         stream: true,
-        stream_options: {
-          include_usage: true,
-        },
+        // stream_options: {
+        //   include_usage: true,
+        // },
         response_format: { type: 'json_object' },
       });
     } catch (error) {
@@ -155,7 +166,7 @@ const streamWithCompletion = async data => {
       throw error;
     }
     for await (const chunk of result) {
-      res.flushHeaders();
+      // res.flushHeaders();
       const chunkContent = await responseHandler.handleChunk(chunk);
       logger.info(`chunkContent: ${JSON.stringify(chunkContent)}`, chunkContent);
       res.write(`data: ${JSON.stringify({ content: chunkContent })}\n\n`);
@@ -175,8 +186,8 @@ const streamWithCompletion = async data => {
 
         // Add the interaction to the vector store
         const docs = [
-          { pageContent: prompt, metadata: { chatId: chatSession._id, role: 'user' } },
-          { pageContent: fullResponse, metadata: { chatId: chatSession._id, role: 'assistant' } },
+          { pageContent: prompt, metadata: { chatId: chatSession._id.toString(), role: 'user' } },
+          { pageContent: fullResponse, metadata: { chatId: chatSession._id.toString(), role: 'assistant' } },
         ];
         const textSplitter = new RecursiveCharacterTextSplitter({
           chunkSize: 1000,

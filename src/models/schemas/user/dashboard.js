@@ -66,4 +66,5 @@ const interviewStatsSchema = createSchema({
 
 const JobApplication = mongoose.model('JobApplication', jobApplicationSchema);
 const InterviewStats = mongoose.model('InterviewStats', interviewStatsSchema);
+
 module.exports = { JobApplication, InterviewStats };

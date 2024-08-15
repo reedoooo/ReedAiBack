@@ -124,8 +124,6 @@ const createSession = async (req, res) => {
         max_tokens: settings.maxTokens || 500,
         temperature: settings.temperature || 0.7,
         response_format: { type: 'json_object' },
-        // top_p: settings.topP || 1,
-        // n: settings.n || 1,
       });
     } catch (error) {
       throw new Error(`Error generating initial completion: ${error.message}`);
@@ -163,6 +161,7 @@ const createSession = async (req, res) => {
     } catch (error) {
       throw new Error(`Error creating session: ${error.message}`);
     }
+    savedSession.activeSessionId = savedSession._id;
     // Save messages to the session
     const newSystemMessage = new Message({
       ...systemMessage,
