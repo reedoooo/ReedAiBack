@@ -1,6 +1,8 @@
 const { logger } = require('@/config/logging');
+const { getEnv } = require('@/utils/api');
 const { ChatPromptTemplate } = require('@langchain/core/prompts');
 const { OpenAI } = require('@langchain/openai');
+const { default: axios } = require('axios');
 const fs = require('fs');
 const { PDFDocument } = require('pdf-lib');
 const sharp = require('sharp');
@@ -318,18 +320,6 @@ const summarizeMessages = async (messages, chatOpenAI) => {
       required: ['overallSummary', 'individualSummaries'],
     },
   };
-
-  // const template = new ChatPromptTemplate([
-  //   { role: 'system', content: 'You are a helpful assistant that summarizes chat messages.' },
-  //   {
-  //     role: 'user',
-  //     content: `Summarize these messages. Provide an overall summary and a summary for each message with its corresponding ID: ${JSON.stringify(messages)}`,
-  //   },
-  // ]);
-  // const input = [
-  //   SystemMessage( 'You are a helpful assistant that summarizes chat messages.' ),
-  //   HumanMessage( `Summarize these messages. Provide an overall summary and a summary for each message with its corresponding ID: ${JSON.stringify(messages)}` ),
-  // ];
   const response = await chatOpenAI.completionWithRetry({
     model: 'gpt-4-1106-preview',
     // prompt: template,
@@ -343,18 +333,6 @@ const summarizeMessages = async (messages, chatOpenAI) => {
     functions: [summarizeFunction],
     function_call: { name: 'summarize_messages' },
   });
-  // const response = await chatOpenAI.completionWithRetry({
-  //   model: 'gpt-4-1106-preview',
-  // messages: [
-  //   { role: 'system', content: 'You are a helpful assistant that summarizes chat messages.' },
-  //   {
-  //     role: 'user',
-  //     content: `Summarize these messages. Provide an overall summary and a summary for each message with its corresponding ID: ${JSON.stringify(messages)}`,
-  //   },
-  // ],
-  //   functions: [summarizeFunction],
-  //   function_call: { name: 'summarize_messages' },
-  // });
   const functionCall = response.choices[0].message.function_call;
   if (functionCall && functionCall.name === 'summarize_messages') {
     const { overallSummary, individualSummaries } = JSON.parse(functionCall.arguments);
@@ -377,11 +355,89 @@ const extractSummaries = summaryResponse => {
     individualSummariesArray,
   };
 };
+async function performWebSearch(query, numResults) {
+  try {
+    const searchQuery = `${query}`;
 
+    const response = await axios.get('https://api.perplexity.ai/search', {
+      params: {
+        q: searchQuery,
+        num: numResults,
+      },
+      headers: {
+        Authorization: getEnv('PERPLEXITY_API_KEY'),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Extract and return the relevant documents
+    const documents = response.data.results.map(result => ({
+      pageContent: result.snippet,
+      metadata: { url: result.url },
+    }));
+
+    return documents;
+  } catch (error) {
+    console.error('Error performing web search:', error);
+    return [];
+  }
+}
+async function performPerplexityCompletion(prompt, perplexityApiKey) {
+  try {
+      // Make a request to the Perplexity API
+      const response = await axios.post('https://api.perplexity.ai/completions', {
+          prompt: prompt,
+          max_tokens: 150, // Adjust as needed
+          temperature: 0.7, // Adjust as needed
+          model: 'gpt-3.5-turbo' // Use the appropriate model
+      }, {
+          headers: {
+              'Authorization': `Bearer ${perplexityApiKey}`,
+              'Content-Type': 'application/json'
+          }
+      });
+
+      // Extract and return the relevant completion
+      const completion = response.data.choices[0].text.trim();
+      return [{ pageContent: completion, metadata: { source: 'Perplexity AI' } }];
+  } catch (error) {
+      console.error('Error performing Perplexity completion:', error);
+      return [];
+  }
+}
 module.exports = {
   summarizeMessages,
   analyzeTextWithGPT,
   analyzeImage,
   fetchSearchResults,
   extractSummaries,
+  performWebSearch,
+  performPerplexityCompletion,
+  // analyzeTextWithGPT,
+  // analyzeImage,
+  // fetchSearchResults,
+  // extractSummaries,
 };
+// const template = new ChatPromptTemplate([
+//   { role: 'system', content: 'You are a helpful assistant that summarizes chat messages.' },
+//   {
+//     role: 'user',
+//     content: `Summarize these messages. Provide an overall summary and a summary for each message with its corresponding ID: ${JSON.stringify(messages)}`,
+//   },
+// ]);
+// const input = [
+//   SystemMessage( 'You are a helpful assistant that summarizes chat messages.' ),
+//   HumanMessage( `Summarize these messages. Provide an overall summary and a summary for each message with its corresponding ID: ${JSON.stringify(messages)}` ),
+// ];
+// const response = await chatOpenAI.completionWithRetry({
+//   model: 'gpt-4-1106-preview',
+// messages: [
+//   { role: 'system', content: 'You are a helpful assistant that summarizes chat messages.' },
+//   {
+//     role: 'user',
+//     content: `Summarize these messages. Provide an overall summary and a summary for each message with its corresponding ID: ${JSON.stringify(messages)}`,
+//   },
+// ],
+//   functions: [summarizeFunction],
+//   function_call: { name: 'summarize_messages' },
+// });

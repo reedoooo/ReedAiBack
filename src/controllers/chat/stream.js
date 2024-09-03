@@ -24,13 +24,14 @@ const chatStream = async (req, res) => {
     frequencyPenalty: 0.5,
     presencePenalty: 0,
     /* -- Key Values for Accessing RAG Processing APIs -- */
+    perplexityApiKey: getEnv('PERPLEXITY_API_KEY'),
     searchEngineKey: getEnv('GOOGLE_SERPER_API_KEY'),
     pineconeEnv: getEnv('PINECONE_ENVIRONMENT'),
     pineconeIndex: getEnv('PINECONE_INDEX'),
     namespace: getEnv('PINECONE_NAMESPACE'),
     dimensions: parseInt(getEnv('EMBEDDING_MODEL_DIMENSIONS')),
     embeddingModel: getEnv('OPENAI_API_EMBEDDING_MODEL'),
-    completionModel: getEnv('OPENAI_CHAT_COMPLETION_MODEL_2'),
+    completionModel: getEnv('OPENAI_CHAT_COMPLETION_MODEL'),
     res,
   };
 

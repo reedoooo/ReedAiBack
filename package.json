@@ -19,6 +19,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@api/pplx": "file:.api/apis/pplx",
     "@langchain/community": "^0.2.18",
     "@langchain/core": "^0.2.8",
     "@langchain/mongodb": "^0.0.4",

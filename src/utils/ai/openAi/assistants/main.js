@@ -127,7 +127,7 @@ const myAssistant = async (threadId, prompt) => {
     const openai = getUserOpenaiClient(process.env.OPENAI_API_PROJECT_KEY);
 
     const file = await openai.files.create({
-      file: fs.createReadStream(path.join(__dirname, '@/public/static/files/chatgpt-prompts-custom.json')),
+      file: fs.createReadStream(path.join(__dirname, '@/public/static/chatgpt-prompts-custom.json')),
       purpose: 'assistants',
     });
 
@@ -350,7 +350,7 @@ const getAssistantByThreadId = async (req, res, next) => {
     const { createMessage, listMessages } = openAiApiMessageService(openai);
     const { createRun, retrieveRun } = openAiApiRunService(openai);
     // -- 1
-    const file = await uploadFile(path.join(__dirname, '@/public/static/files/chatgpt-prompts-custom.json'));
+    const file = await uploadFile(path.join(__dirname, '@/public/static/chatgpt-prompts-custom.json'));
     fileIds.push(file.id);
     const existingAssistant = await listAndCheckAssistantExistence(openai);
     let assistant;

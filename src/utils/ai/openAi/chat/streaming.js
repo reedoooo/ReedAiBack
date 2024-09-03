@@ -14,6 +14,7 @@ const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { createPineconeIndex } = require('@/utils/ai/pinecone/create.js');
 const { logger } = require('@/config/logging');
 const { getMainSystemMessageContent, getMainAssistantMessageInstructions } = require('@/lib/prompts/createPrompt');
+const { performWebSearch, performPerplexityCompletion } = require('./context');
 
 const streamWithCompletion = async data => {
   const {
@@ -28,6 +29,8 @@ const streamWithCompletion = async data => {
     namespace,
     embeddingModel,
     dimensions,
+    perplexityApiKey,
+    searchEngineKey,
     completionModel,
     res,
   } = data;
@@ -56,11 +59,10 @@ const streamWithCompletion = async data => {
 
     // Get session messages
     const messages = (await getSessionMessages(chatSession._id)) || [];
-    logger.info(`[CHECK][5]: ${JSON.stringify(messages)} ${messages}}`, messages);
 
     // Summarize messages
     const summary = await handleSummarization(messages, chatOpenAI);
-    logger.info(`[CHECK][6]: ${JSON.stringify(summary)}`, summary);
+    logger.info(`[CHECK][summary]: ${JSON.stringify(summary)}`, summary);
 
     await chatHistory.addUserMessage(prompt);
     const newUserMessageId = await createMessage(
@@ -73,15 +75,38 @@ const streamWithCompletion = async data => {
     chatSession.messages.push(newUserMessageId);
     chatSession.summary = summary;
     await chatSession.save();
-    logger.info(`[CHECK][7]: ${JSON.stringify(newUserMessageId)}`, newUserMessageId);
 
+    // Initialize the Perplexity chat model
+    // const llm = new ChatPerplexity({
+    //   model: 'llama-3-sonar-small-32k-online', // Choose your desired model
+    //   temperature: 0.7, // Set the temperature for response variability
+    //   pplxApiKey: 'YOUR_PERPLEXITY_API_KEY', // Add your Perplexity API key here
+    // });
+    // const prompt = PromptTemplate.fromTemplate(
+    //   "You are an agent that will analyze and give statistical responses for the data CONTEXT: {context} USER QUESTION: {question}"
+    // );
+
+    // // Create the RAG chain
+    // const ragChain = RetrievalQAChain.fromLLM({
+    //   llm,
+    //   prompt,
+    //   outputParser: new StringOutputParser(),
+    // });
+
+    // // Invoke the chain to return a response
+    // const result = await ragChain.invoke({
+    //   question: query,
+    //   context: vectorResult,
+    // });
+    // Use Perplexity AI completion as a search engine
+    const searchResults = await performPerplexityCompletion(prompt, perplexityApiKey); // Fetch results using Perplexity AI
+    logger.info(`Search Results: ${JSON.stringify(searchResults)}`, searchResults);
     // Pinecone query vector store setup
     const vectorQueryStore = await PineconeStore.fromExistingIndex(embedder, {
       pineconeIndex: await createPineconeIndex(pinecone, pineconeIndex),
       namespace: 'chat-history',
       textKey: 'text',
     });
-    logger.info(`[CHECK][8]: ${JSON.stringify(vectorQueryStore)}`, vectorQueryStore);
 
     // Pinecone document vector store setup
     const vectorStore = await PineconeStore.fromExistingIndex(embedder, {
@@ -90,6 +115,10 @@ const streamWithCompletion = async data => {
       textKey: 'text',
     });
 
+    // Add search results to Pinecone store
+    const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
+    const splitDocs = await textSplitter.splitDocuments(searchResults);
+    await vectorStore.addDocuments(splitDocs);
     // Pinecone context query
     const relevantSessionHistory = await vectorQueryStore.similaritySearch(prompt, 5);
     logger.info(`Relevant History: ${JSON.stringify(relevantSessionHistory)}`, relevantSessionHistory);
@@ -139,8 +168,6 @@ const streamWithCompletion = async data => {
       // Chat OpenAI completion
       const systemContent = getMainSystemMessageContent();
       const assistantInstructions = getMainAssistantMessageInstructions();
-      logger.info(`systemContent: ${systemContent}`, systemContent);
-      logger.info(`assistantInstructions: ${assistantInstructions}`, assistantInstructions);
       result = await chatOpenAI.completionWithRetry({
         model: completionModel,
         messages: [
@@ -154,7 +181,6 @@ const streamWithCompletion = async data => {
           // response.choices[0].message,
           // function_call_result_message,
         ],
-        // messages: [...messages, { role: 'user', content: formattedPrompt }],
         stream: true,
         // stream_options: {
         //   include_usage: true,
@@ -168,7 +194,7 @@ const streamWithCompletion = async data => {
     for await (const chunk of result) {
       // res.flushHeaders();
       const chunkContent = await responseHandler.handleChunk(chunk);
-      logger.info(`chunkContent: ${JSON.stringify(chunkContent)}`, chunkContent);
+      // logger.info(`chunkContent: ${JSON.stringify(chunkContent)}`, chunkContent);
       res.write(`data: ${JSON.stringify({ content: chunkContent })}\n\n`);
 
       if (responseHandler.isResponseComplete()) {

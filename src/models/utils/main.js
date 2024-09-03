@@ -85,7 +85,7 @@ const initializeChatSession = async (providedSessionId, providedWorkspaceId, use
           active: true,
           model: 'gpt-4-1106-preview',
           settings: {
-            maxTokens: 2000,
+            maxTokens: 3000,
             temperature: 0.9,
             topP: 1.0,
           },

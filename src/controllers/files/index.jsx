@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const baseUrl = 'http://localhost:3001/static/files/';
+const baseUrl = 'http://localhost:3001/static/';
 
 const getListFiles = (req, res) => {
-  const directoryPath = path.join(__dirname, '@/public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static');
 
   fs.readdir(directoryPath, (err, files) => {
     if (err) {
@@ -30,7 +30,7 @@ const getListFiles = (req, res) => {
 
 const download = (req, res) => {
   const fileName = req.params.name;
-  const directoryPath = path.join(__dirname, '@/public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static');
 
   res.download(directoryPath + '/' + fileName, fileName, err => {
     if (err) {
@@ -120,7 +120,7 @@ const downloadCustomPrompts = (req, res) => {
 
 const getFileByType = (req, res) => {
   const { type } = req.params;
-  const directoryPath = path.join(__dirname, '@/public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static');
 
   fs.readdir(directoryPath, (err, files) => {
     if (err) {
@@ -193,7 +193,7 @@ const addCustomPrompt = (req, res) => {
 };
 
 const getAllPngFiles = (req, res) => {
-  const directoryPath = path.join(__dirname, '@/public/static/files');
+  const directoryPath = path.join(__dirname, '@/public/static');
 
   fs.readdir(directoryPath, (err, files) => {
     if (err) {

@@ -20,11 +20,12 @@ const {
   getFileByName,
   uploadFile,
 } = require('@/controllers');
-  const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const { upload } = require('@/middlewares/upload.js');
 const { upsertDocs } = require('@/utils/ai/pinecone/customUpsert.js');
 const { queryComponents } = require('@/utils/ai/pinecone/query.js');
+const { logger } = require('@/config/logging');
 const router = express.Router();
 
 router.use(authenticate);
@@ -49,7 +50,7 @@ router.get('/download/:id', asyncHandler(downloadFile));
 router.post('/upload', upload.single('file'), asyncHandler(uploadFile));
 router.post('/upload/single', upload.single('file'), asyncHandler(uploadSingleFile));
 router.post('/upload/array', upload.array('files'), asyncHandler(uploadMultipleFiles));
-//
+// STATUS: [200]
 router.post('/upsert-docs', asyncHandler(upsertDocs));
 router.post('/query-components', asyncHandler(queryComponents));
 //
@@ -57,8 +58,9 @@ router.get(
   '/static/:filename',
   asyncHandler((req, res) => {
     const { filename } = req.params;
-    const filePath = path.join(__dirname, '../../../public/static/files', filename);
-
+    logger.info('filename', filename);
+    const filePath = path.join(__dirname, '../../../public/static', filename);
+    logger.info('filePath', filePath);
     fs.access(filePath, exists => {
       if (!exists) {
         return res.status(404).send('File not found');
@@ -73,7 +75,7 @@ router.get(
     try {
       const filePaths = [];
       const { filetype } = req.params;
-      const files = fs.readdirSync(path.join(__dirname, '../../../public/static/files'));
+      const files = fs.readdirSync(path.join(__dirname, '../../../public/static'));
       files.forEach(file => {
         if (file.endsWith(filetype)) {
           filePaths.push(file);
@@ -84,7 +86,7 @@ router.get(
       console.error('Error reading directory:', error);
       return res.status(500).send('Internal Server Error');
     }
-    // const filePath = path.join(__dirname, '../../public/static/files', filename);
+    // const filePath = path.join(__dirname, '../../public/static', filename);
 
     // fs.access(filePath, exists => {
     //   if (!exists) {
@@ -97,7 +99,7 @@ router.get(
 router.get(
   '/static/list',
   asyncHandler((req, res) => {
-    const files = fs.readdirSync(path.join(__dirname, '../../public/static/files'));
+    const files = fs.readdirSync(path.join(__dirname, '../../../public/static'));
     res.json({ files });
   })
 );

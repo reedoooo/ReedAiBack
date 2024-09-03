@@ -30,7 +30,7 @@ const createWorkspace = async user => {
 
     selectedPreset: null,
     name: 'Home Workspace',
-    imagePath: 'http://localhost:3001/static/files/avatar3.png',
+    imagePath: 'http://localhost:3001/static/avatar3.png',
     active: true,
 
     defaultContextLength: 4000,
@@ -102,7 +102,7 @@ const createFile = async (user, folder) => {
     folderId: folder._id,
     name: 'Deep Learning Research.pdf',
     description: 'A comprehensive paper on deep learning.',
-    filePath: '/public/static/files/defaultFiles/default.pdf',
+    filePath: '/public/static/defaultFiles/default.pdf',
     data: null,
     size: 2048,
     tokens: 3500,

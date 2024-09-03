@@ -5,8 +5,17 @@ const jwt = require('jsonwebtoken');
 const authenticate = async (req, res, next) => {
   try {
     const token = req.headers.authorization.split(' ')[1];
+
+    if (!token) {
+      throw new Error('No token provided');
+    }
     const decodedToken = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const userId = decodedToken.userId;
+    if (!userId) {
+      throw new Error('Invalid token');
+    }
+    // Attach userId to the request object
+    req.userId = userId;
     logger.info(`User ID: ${userId}`);
     logger.info(`[USER ID AUTHENTICATED] User ID: ${userId}`);
 

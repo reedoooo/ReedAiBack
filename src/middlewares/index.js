@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const { morganMiddleware } = require('./morganMiddleware');
-const { unifiedErrorHandler } = require('./old/unifiedErrorHandler');
+// const { unifiedErrorHandler } = require('./old/unifiedErrorHandler');
 const path = require('path');
 const session = require('express-session');
 const { db } = require('../config/env');
@@ -72,21 +72,20 @@ const middlewares = app => {
     session({
       secret: process.env.SESSION_SECRET,
       resave: false,
-      saveUninitialized: true,
+      saveUninitialized: false,
       store: new MongoStore({
         mongoUrl: db,
-        ttl: 1000 * 60 * 60 * 24, // 1 day
+        // ttl: 1000 * 60 * 60 * 24, // 1 day
       }),
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24, // 1 day
-      },
+      cookie: { maxAge: 1000 * 60 * 60 * 24, secure: process.env.NODE_ENV === 'production' },
     })
   );
 
-  // Passport configuration
+  // Passport configuration for user authentication
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Configure local strategy for user authentication
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
       try {
@@ -105,6 +104,7 @@ const middlewares = app => {
     })
   );
 
+  // Serialize and deserialize user for session management
   passport.serializeUser((user, done) => {
     done(null, user.id);
   });
@@ -122,7 +122,8 @@ const middlewares = app => {
   const publicDir = path.join(__dirname, '../../public');
   app.use(express.static(publicDir));
 
-  const staticDirs = ['static', 'uploads', 'downloads', 'files', 'generated'];
+  const staticDirs = ['static', 'uploads'];
+  
   staticDirs.forEach(dir => {
     app.use(`/static/${dir}`, cors(corsOptions), express.static(path.join(publicDir, `static/${dir}`)));
   });
@@ -154,7 +155,7 @@ const middlewares = app => {
     })
   );
 
-  app.use(unifiedErrorHandler);
+  // app.use(unifiedErrorHandler);
 };
 
 module.exports = middlewares;

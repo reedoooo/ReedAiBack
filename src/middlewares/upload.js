@@ -1,10 +1,14 @@
 const multer = require('multer');
 const path = require('path');
-
+const fs = require('fs');
+// Create uploads directory if it doesn't exist yet
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 // Configure storage for Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'uploads');
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
@@ -20,7 +24,7 @@ const fileFilter = (req, file, cb) => {
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (extname && mimetype) {
-    return cb(null, true);
+    cb(null, true);
   } else {
     cb(new Error('Only images and PDFs are allowed!'));
   }
@@ -29,6 +33,7 @@ const fileFilter = (req, file, cb) => {
 // Initialize Multer with storage and file filter
 const upload = multer({
   storage: storage,
+  // fileFilter: fileFilter,
 });
 
 module.exports = {

@@ -1,11 +1,11 @@
 // Exporting from services directory
 module.exports = {
   ...require('./dbService'),
-  ...require('./workspaceService'),
-  ...require('./assistantService'),
-  ...require('./promptService'),
-  ...require('./messageService'),
-  ...require('./folderService'),
-  ...require('./fileService'),
-  ...require('./chatSessionService'),
+  ...require('./chat/workspaceService'),
+  ...require('./chat/assistantService'),
+  ...require('./chat/promptService'),
+  ...require('./chat/messageService'),
+  ...require('./chat/folderService'),
+  ...require('./chat/fileService'),
+  ...require('./chat/chatSessionService'),
 };
