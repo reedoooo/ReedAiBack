@@ -253,26 +253,66 @@ const workspaceSchema = createSchema({
 // =============================
 // [FOLDERS] name, workspaceId
 // =============================
-const folderSchema = createSchema({
-  // Critical
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-  name: { type: String, required: false },
-  description: { type: String, required: false },
-  type: {
-    type: String,
-    required: false,
-    enum: ['chatSessions', 'assistants', 'files', 'models', 'tool', 'tools', 'presets', 'prompts', 'collections'],
+const folderSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    type: {
+      type: String,
+      required: true,
+      enum: ['chatSessions', 'assistants', 'files', 'models', 'tools', 'presets', 'prompts', 'collections'],
+    },
+    space: {
+      type: String,
+      required: true,
+      enum: ['chatSessions', 'assistants', 'files', 'models', 'tools', 'presets', 'prompts', 'collections'],
+    },
+    items: [
+      {
+        type: Schema.Types.ObjectId,
+        refPath: 'itemType',
+      },
+    ],
+    itemType: [
+      {
+        type: String,
+        enum: ['File', 'Folder'],
+      },
+    ],
+    parent: { type: Schema.Types.ObjectId, ref: 'Folder', index: true },
+    path: { type: String, index: true },
+    level: { type: Number, default: 0 },
   },
-  items: {
-    type: Array,
-    required: false,
-    // default [],
-  },
-  // Extra
-  parent: { type: Schema.Types.ObjectId, ref: 'Folder' },
-  subfolders: [{ type: Schema.Types.ObjectId, ref: 'Folder' }],
+  { timestamps: true }
+);
+
+// Indexes
+folderSchema.index({ userId: 1, workspaceId: 1, name: 1 }, { unique: true });
+folderSchema.index({ path: 1, workspaceId: 1 });
+
+// Pre-save middleware
+folderSchema.pre('save', async function (next) {
+  if (this.isNew || this.isModified('parent')) {
+    const parent = await this.constructor.findById(this.parent);
+    this.path = parent ? `${parent.path}/${this._id}` : `/${this._id}`;
+    this.level = parent ? parent.level + 1 : 0;
+  }
+  next();
 });
+
+// Virtual for subfolders
+folderSchema.virtual('subfolders', {
+  ref: 'Folder',
+  localField: '_id',
+  foreignField: 'parent',
+});
+
+// Method to get all descendants
+folderSchema.methods.getAllDescendants = async function () {
+  return this.model('Folder').find({ path: new RegExp(`^${this.path}/`) });
+};
 // files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
 // collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
 // models: [{ type: Schema.Types.ObjectId, ref: 'Model' }],
@@ -366,6 +406,11 @@ const fileSchema = createSchema({
     type: String,
     required: false,
     enum: ['txt', 'pdf', 'doc', 'docx', 'md', 'html', 'json', 'csv', 'tsv', 'jsx', 'js', 'png', 'jpg', 'jpeg', 'gif'],
+  },
+  space: {
+    type: String,
+    required: true,
+    enum: ['chatSessions', 'assistants', 'files', 'models', 'tools', 'presets', 'prompts', 'collections'],
   },
   tokens: { type: Number, required: false },
   sharing: { type: String },

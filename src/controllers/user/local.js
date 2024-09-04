@@ -349,6 +349,14 @@ const loginUser = async (req, res, next) => {
           path: 'chatSessions',
           model: 'ChatSession', // Replace 'Message' with the actual name of your Message model
         },
+        populate: {
+          path: 'folders',
+          model: 'Folder', // Replace 'Message' with the actual name of your Message model
+        },
+        populate: {
+          path: 'files',
+          model: 'File', // Replace 'Message' with the actual name of your Message model
+        },
       },
       'assistants',
       'prompts',
@@ -359,7 +367,23 @@ const loginUser = async (req, res, next) => {
           model: 'ChatMessage', // Replace 'Message' with the actual name of your Message model
         },
       },
-      'folders',
+      {
+        path: 'folders',
+        populate: [
+          {
+            path: 'items',
+            refPath: 'itemType',
+          },
+          {
+            path: 'subfolders',
+            model: 'Folder',
+            populate: {
+              path: 'items',
+              refPath: 'itemType',
+            },
+          },
+        ],
+      },
       'files',
       'collections',
       'models',
