@@ -1,7 +1,7 @@
 // routes/user/local.js
 const express = require('express');
 const router = express.Router();
-const userController = require('../../controllers');
+const userController = require('../../controllers/user');
 
 // --- INITIALIZE ROUTES ---
 router.post('/signup', userController.registerUser);

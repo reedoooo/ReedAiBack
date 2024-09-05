@@ -36,7 +36,7 @@ const middlewares = app => {
   app.use(morganMiddleware);
 
   // Enable response compression for better performance
-  app.use(compression({ threshold: 512 }));
+  // app.use(compression({ threshold: 512 }));
 
   // Parse incoming JSON requests
   app.use(express.json());
@@ -57,16 +57,6 @@ const middlewares = app => {
   };
   app.use(cors(corsOptions));
 
-  // Configure session management with MongoDB store
-  // app.use(
-  //   session({
-  //     secret: process.env.SESSION_SECRET,
-  //     resave: false,
-  //     saveUninitialized: false,
-  //     store: new MongoStore({ mongooseConnection: require('./db') }),
-  //     cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }, // 7 days
-  //   })
-  // );
   // Session configuration
   app.use(
     session({
@@ -123,7 +113,7 @@ const middlewares = app => {
   app.use(express.static(publicDir));
 
   const staticDirs = ['static', 'uploads'];
-  
+
   staticDirs.forEach(dir => {
     app.use(`/static/${dir}`, cors(corsOptions), express.static(path.join(publicDir, `static/${dir}`)));
   });
@@ -135,7 +125,7 @@ const middlewares = app => {
 
   // Middleware for handling Server-Sent Events
   app.use(async (req, res, next) => {
-    logger.info('Request Headers:', req.headers);
+    // logger.info(`REQUEST: ${req.method} ${req.url} - IP: ${req.ip} HEADER: ${JSON.stringify(req.headers)}`, req.headers);
     if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',

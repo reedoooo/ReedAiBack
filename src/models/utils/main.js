@@ -123,7 +123,6 @@ const initializeChatSession = async (providedSessionId, providedWorkspaceId, use
         if (workspace) {
           workspace.chatSessions.push(chatSession._id);
           await workspace.save();
-          logger.info(`Added chat session ${chatSession._id} to workspace ${workspace._id}`);
         } else {
           throw new Error('Workspace not found');
         }
@@ -131,7 +130,6 @@ const initializeChatSession = async (providedSessionId, providedWorkspaceId, use
         if (user) {
           user.chatSessions.push(chatSession._id);
           await user.save();
-          logger.info(`Added chat session ${chatSession._id} to user ${user._id}`);
         } else {
           throw new Error('User not found');
         }

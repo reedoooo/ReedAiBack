@@ -1,34 +1,34 @@
 // routes/index.js
-const systemFilesRoutes = require('./files/systemFiles.jsx');
 const {
-  chatStreamRoutes,
-  filesRoutes,
-  chatPresetsRoutes,
-  chatMessageRoutes,
-  chatModelRoutes,
-  workspaceRoutes,
-  chatSessionRoutes,
-  chatPromptRoutes,
+  // chatAssistantRoutes,
+  chatRoutes,
+  chatAttachmentRoutes,
+} = require('./chat-sessions');
+const {
+  chatSettingsRoutes,
+} = require('./chat-items');
+const {
+  userBaseRoutes,
+} = require('./user');
+const {
   chatFolderRoutes,
-  chatCollectionRoutes,
-  chatToolsRoutes,
-} = require('./chat/index.js');
-const { userBaseRoutes } = require('./user/index.js');
+  workspaceRoutes,
+} = require('./workspaces');
 
 const setupRoutes = app => {
   app.use('/api/user', userBaseRoutes);
-  app.use('/api/chat/v1', chatStreamRoutes); // <-- This is actually the current main chat route and also handles the streaming
+  app.use('/api/chat/v1', chatRoutes); // <-- This is actually the current main chat route and also handles the streaming
   app.use('/api/chat/workspaces', workspaceRoutes);
   app.use('/api/chat/folders', chatFolderRoutes);
-  app.use('/api/chat/files', filesRoutes);
-  app.use('/api/chat/sessions', chatSessionRoutes);
-  app.use('/api/chat/messages', chatMessageRoutes);
-  app.use('/api/files', systemFilesRoutes);
-  app.use('/api/chat/tools', chatToolsRoutes);
-  app.use('/api/chat/presets', chatPresetsRoutes);
-  app.use('/api/chat/models', chatModelRoutes);
-  app.use('/api/chat/prompts', chatPromptRoutes);
-  app.use('/api/chat/collections', chatCollectionRoutes);
+  app.use('/api/chat/files', chatAttachmentRoutes);
+  app.use('/api/chat/messages', chatAttachmentRoutes);
+  app.use('/api/chat/sessions', chatRoutes);
+  app.use('/api/chat/tools', chatSettingsRoutes);
+  app.use('/api/chat/presets', chatSettingsRoutes);
+  app.use('/api/chat/models', chatSettingsRoutes);
+  app.use('/api/chat/prompts', chatSettingsRoutes);
+  app.use('/api/chat/collections', chatSettingsRoutes);
+  // app.use('/api/chat/assistants', chatAssistantRoutes);
 };
 
 module.exports = setupRoutes;

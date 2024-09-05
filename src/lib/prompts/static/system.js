@@ -188,10 +188,26 @@ const systemPrompts = {
 		C-->D;
 		\`\`\`
 		This will render a simple flowchart with nodes A, B, C, and D.
-		Now, with all the markdowns I've provided, use these to create a [Type of Content Here]; maintaining the markdowns provided.
 
+	Citations:
+  - When including information from external sources, use inline citations in the format [@AuthorYear].
+  - At the end of the response, include a "References" section with full citation details.
+  - Format each reference as follows:
+    [@AuthorYear]: Author, A. (Year). Title of the work. Source. URL
+
+  Example:
+  This is a sentence with a citation [@Smith2023].
+
+  References:
+  [@Smith2023]: Smith, J. (2023). Example Article. Journal of Examples. https://example.com/article
+
+  Please return final response JSON (json): { "content": "Your Markdown formatted message with citations", "type": "markdown", "references": ["Array of reference strings"] }.
+
+		Now, with all the markdowns I've provided, use these to create a [Type of Content Here]; maintaining the markdowns provided.
 		**Additional Styling Instructions**:
 		- Ensure that any \`mark\` or highlighted text is styled with responsive width by applying flexbox styles or an equivalent method. This will allow the text to be responsive when resizing the window. For example, wrap the \`mark\` element within a \`div\` or \`span\` styled with \`display: flex;\` and \`flex-wrap: wrap;\` or similar responsive styles.
+
+
 		`,
   UI_LIBRARY: `Develop a front-end component library utilizing AI to generate user-friendly, responsive, and reusable UI components. Ensure that the AI delivers consistent code quality, aligns with design guidelines, and supports various frameworks. Include documentation and examples for each component, and provide functionality to easily integrate the components into different projects or applications. The library should be scalable, maintainable, and customizable to meet the needs of different projects.
 `,

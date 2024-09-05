@@ -1,209 +1,9 @@
 const { logger } = require('@/config/logging');
 const { getEnv } = require('@/utils/api');
-const { ChatPromptTemplate } = require('@langchain/core/prompts');
-const { OpenAI } = require('@langchain/openai');
 const { default: axios } = require('axios');
 const fs = require('fs');
-const { PDFDocument } = require('pdf-lib');
 const sharp = require('sharp');
-/**
- * Function to dynamically generate a React component based on a detailed prompt.
- * @param {string} prompt - Detailed description of the component to be generated.
- * @param {string} apiKey - The API key for the AI model service.
- * @returns {Promise<string>} - A promise that resolves to the generated React component code.
- */
-// async function generateReactComponent(prompt, apiKey) {
-//   try {
-//     const response = await fetch('https://api.openai.com/v1/completions', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         Authorization: `Bearer ${apiKey}`,
-//       },
-//       body: JSON.stringify({
-//         model: 'text-davinci-003',
-//         prompt: prompt,
-//         max_tokens: 1500,
-//         temperature: 0.7,
-//       }),
-//     });
 
-//     const data = await response.json();
-//     return data.choices[0].text.trim();
-//   } catch (error) {
-//     logger.error('Error generating React component:', error);
-//     throw new Error('Error generating React component');
-//   }
-// }
-// /**
-//  * Function to enhance an existing styled component with additional features or best practices.
-//  * @param {string} componentCode - The existing component code to be enhanced.
-//  * @param {string} enhancementPrompt - Description of the enhancements to be applied.
-//  * @param {string} apiKey - The API key for the AI model service.
-//  * @returns {Promise<string>} - A promise that resolves to the enhanced component code.
-//  */
-// async function enhanceStyledComponent(componentCode, enhancementPrompt, apiKey) {
-//   try {
-//     const combinedPrompt = `
-//         Here is a styled component:
-//         ${componentCode}
-
-//         Please enhance it with the following features or best practices:
-//         ${enhancementPrompt}
-//         `;
-
-//     const response = await fetch('https://api.openai.com/v1/completions', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         Authorization: `Bearer ${apiKey}`,
-//       },
-//       body: JSON.stringify({
-//         model: 'text-davinci-003',
-//         prompt: combinedPrompt,
-//         max_tokens: 1500,
-//         temperature: 0.7,
-//       }),
-//     });
-
-//     const data = await response.json();
-//     return data.choices[0].text.trim();
-//   } catch (error) {
-//     logger.error('Error enhancing styled component:', error);
-//     throw new Error('Error enhancing styled component');
-//   }
-// }
-// /**
-//  * Function to process a PDF, extract images, and ask a question to an AI model.
-//  * @param {string} pdfPath - The file path to the PDF document.
-//  * @param {string} question - The question to be asked for each image in the PDF.
-//  * @param {string} apiKey - The API key for the AI model service.
-//  * @returns {Promise<Array>} - A promise that resolves to an array of responses from the AI model.
-//  */
-// async function processPdfAndAskQuestion(pdfPath, question, apiKey) {
-//   try {
-//     // Extract images from the PDF
-//     const existingPdfBytes = fs.readFileSync(pdfPath);
-//     const pdfDoc = await PDFDocument.load(existingPdfBytes);
-//     const pages = pdfDoc.getPages();
-//     const images = [];
-
-//     for (const page of pages) {
-//       const { width, height } = page.getSize();
-//       const imageBytes = await page.render({ scale: 2 }).toBuffer();
-//       const image = await sharp(imageBytes).resize({ width, height }).toBuffer();
-//       images.push(image);
-//     }
-//     const openai = new OpenAI({ apiKey });
-//     // Ask the question to the AI model for each image
-//     const results = [];
-//     for (const image of images) {
-//       const response = await openai.completionWithRetry({
-//         model: 'gpt-4-1106-preview', // Use GPT-3.5-turbo model
-//         prompt: question,
-//         // prompt: `You are a detective analyzing a crime scene. What can you infer from the following image?\n\n${question}`,
-//         max_tokens: 200, // Adjust as needed
-//         images: [image.toString('base64')],
-//       });
-
-//       // const response = await fetch('https://api.openai.com/v1/images/generate', {
-//       //   method: 'POST',
-//       //   headers: {
-//       //     'Content-Type': 'application/json',
-//       //     Authorization: `Bearer ${apiKey}`,
-//       //   },
-//       //   body: JSON.stringify({
-//       //     prompt: question,
-//       //     n: 1,
-//       //     size: '1024x1024',
-//       //     response_format: 'url',
-//       //     image: image.toString('base64'),
-//       //   }),
-//       // });
-//       const data = await response.json();
-//       results.push(data);
-//     }
-
-//     return results;
-//   } catch (error) {
-//     logger.error('Error processing PDF:', error);
-//     throw new Error('Error processing PDF');
-//   }
-// }
-// /**
-//  * Function to generate a React component that dynamically renders content based on provided data.
-//  * @param {object} dataStructure - The data structure to be used for rendering the component.
-//  * @param {string} apiKey - The API key for the AI model service.
-//  * @returns {Promise<string>} - A promise that resolves to the generated React component code.
-//  */
-// async function generateDataDrivenComponent(dataStructure, apiKey) {
-//   try {
-//     const prompt = `
-//         Given the following data structure:
-//         ${JSON.stringify(dataStructure, null, 2)}
-
-//         Generate a React component that dynamically renders this content with styled-components.
-//         Ensure it is optimized for performance and responsiveness.
-//         `;
-
-//     const response = await fetch('https://api.openai.com/v1/completions', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         Authorization: `Bearer ${apiKey}`,
-//       },
-//       body: JSON.stringify({
-//         model: 'text-davinci-003',
-//         prompt: prompt,
-//         max_tokens: 1500,
-//         temperature: 0.7,
-//       }),
-//     });
-
-//     const data = await response.json();
-//     return data.choices[0].text.trim();
-//   } catch (error) {
-//     logger.error('Error generating data-driven component:', error);
-//     throw new Error('Error generating data-driven component');
-//   }
-// }
-// /**
-//  * Function to generate Redux actions, reducers, and selectors for a given React component.
-//  * @param {string} componentCode - The existing component code.
-//  * @param {string} apiKey - The API key for the AI model service.
-//  * @returns {Promise<string>} - A promise that resolves to the generated Redux code.
-//  */
-// async function integrateStateManagement(componentCode, apiKey) {
-//   try {
-//     const prompt = `
-//         Given the following React component:
-//         ${componentCode}
-
-//         Generate Redux actions, reducers, and selectors for this component.
-//         Ensure the state management follows best practices.
-//         `;
-
-//     const response = await fetch('https://api.openai.com/v1/completions', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         Authorization: `Bearer ${apiKey}`,
-//       },
-//       body: JSON.stringify({
-//         model: 'text-davinci-003',
-//         prompt: prompt,
-//         max_tokens: 1500,
-//         temperature: 0.7,
-//       }),
-//     });
-
-//     const data = await response.json();
-//     return data.choices[0].text.trim();
-//   } catch (error) {
-//     logger.error('Error integrating state management:', error);
-//     throw new Error('Error integrating state management');
-//   }
-// }
 const analyzeTextWithGPT = async text => {
   try {
     const response = await openai.Completion.create({
@@ -356,54 +156,133 @@ const extractSummaries = summaryResponse => {
   };
 };
 async function performWebSearch(query, numResults) {
-  try {
-    const searchQuery = `${query}`;
+  if (!query || typeof query !== 'string') {
+    throw new Error('Invalid query: Query must be a non-empty string');
+  }
 
+  if (!numResults || typeof numResults !== 'number' || numResults <= 0) {
+    throw new Error('Invalid numResults: Must be a positive number');
+  }
+
+  const apiKey = getEnv('PERPLEXITY_API_KEY');
+  if (!apiKey) {
+    throw new Error('PERPLEXITY_API_KEY is not set in the environment');
+  }
+
+  try {
     const response = await axios.get('https://api.perplexity.ai/search', {
-      params: {
-        q: searchQuery,
-        num: numResults,
-      },
+      params: { q: query, num: numResults },
       headers: {
-        Authorization: getEnv('PERPLEXITY_API_KEY'),
+        Authorization: apiKey,
         'Content-Type': 'application/json',
       },
+      timeout: 10000, // 10 seconds timeout
     });
 
-    // Extract and return the relevant documents
-    const documents = response.data.results.map(result => ({
-      pageContent: result.snippet,
-      metadata: { url: result.url },
-    }));
+    if (!response.data || !Array.isArray(response.data.results)) {
+      throw new Error('Invalid response format from Perplexity API');
+    }
 
-    return documents;
+    return response.data.results.map(result => ({
+      pageContent: result.snippet || '',
+      metadata: { url: result.url || '' },
+    }));
   } catch (error) {
-    console.error('Error performing web search:', error);
-    return [];
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        console.error(`Perplexity API error: ${error.response.status} - ${error.response.data}`);
+        throw new Error(`Perplexity API error: ${error.response.status}`);
+      } else if (error.request) {
+        console.error('No response received from Perplexity API');
+        throw new Error('No response received from Perplexity API');
+      } else {
+        console.error('Error setting up the request:', error.message);
+        throw new Error('Error setting up the request to Perplexity API');
+      }
+    } else {
+      console.error('Unexpected error during web search:', error);
+      throw new Error('Unexpected error during web search');
+    }
   }
 }
 async function performPerplexityCompletion(prompt, perplexityApiKey) {
-  try {
-      // Make a request to the Perplexity API
-      const response = await axios.post('https://api.perplexity.ai/completions', {
-          prompt: prompt,
-          max_tokens: 150, // Adjust as needed
-          temperature: 0.7, // Adjust as needed
-          model: 'gpt-3.5-turbo' // Use the appropriate model
-      }, {
-          headers: {
-              'Authorization': `Bearer ${perplexityApiKey}`,
-              'Content-Type': 'application/json'
-          }
-      });
-
-      // Extract and return the relevant completion
-      const completion = response.data.choices[0].text.trim();
-      return [{ pageContent: completion, metadata: { source: 'Perplexity AI' } }];
-  } catch (error) {
-      console.error('Error performing Perplexity completion:', error);
-      return [];
+  if (!prompt || typeof prompt !== 'string') {
+    throw new Error('Invalid prompt: Prompt must be a non-empty string');
   }
+  if (!perplexityApiKey || typeof perplexityApiKey !== 'string') {
+    throw new Error('Invalid API key: API key must be a non-empty string');
+  }
+  try {
+    const data = {
+      model: 'llama-3.1-sonar-small-128k-online',
+      messages: [
+        { role: 'system', content: 'Be precise and concise.' },
+        { role: 'user', content: prompt },
+      ],
+      return_citations: true,
+      search_domain_filter: ['perplexity.ai'],
+      return_images: false,
+      search_recency_filter: 'month',
+      stream: false,
+      max_tokens: 150,
+      temperature: 0.5,
+    };
+    const config = {
+      method: 'post',
+      url: 'https://api.perplexity.ai/chat/completions',
+      headers: {
+        Authorization: `Bearer ${perplexityApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      data: data,
+    };
+    logger.info(`Perplexity completion: ${prompt}`);
+    // Perform the API request
+    const response = await axios(config);
+    if (!response.data || !response.data.choices || !response.data.choices[0]) {
+      throw new Error('Invalid response format from Perplexity API');
+    }
+
+    const completion = response.data.choices[0].message.content.trim(); // Adjusted to access the correct property
+    const citations = response.data.choices[0].message.citations || [];
+    logger.info(`Perplexity completion response: ${completion} - Citations: ${citations.length}`);
+    // return [{ pageContent: completion, metadata: { source: 'Perplexity AI', citations } }];
+    const formattedResponse = formatResponseWithCitations(completion, citations);
+
+    return formattedResponse;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        console.error(`Perplexity API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+        throw new Error(`Perplexity API error: ${error.response.status}`);
+      } else if (error.request) {
+        console.error('No response received from Perplexity API');
+        throw new Error('No response received from Perplexity API');
+      } else {
+        console.error('Error setting up the request:', error.message);
+        throw new Error('Error setting up the request to Perplexity API');
+      }
+    } else {
+      console.error('Unexpected error during Perplexity completion:', error);
+      throw new Error('Unexpected error during Perplexity completion');
+    }
+  }
+}
+function formatResponseWithCitations(content, citations) {
+  let markdownContent = content;
+  const references = [];
+
+  citations.forEach((citation, index) => {
+    const citationKey = `[@Ref${index + 1}]`;
+    markdownContent = markdownContent.replace(citation.text, `${citation.text} ${citationKey}`);
+    references.push(`${citationKey}: ${citation.metadata.title}. ${citation.metadata.url}`);
+  });
+
+  if (references.length > 0) {
+    markdownContent += "\n\n## References\n" + references.join("\n");
+  }
+
+  return { pageContent: markdownContent, metadata: { type: "markdown", references } };
 }
 module.exports = {
   summarizeMessages,
