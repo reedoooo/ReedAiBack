@@ -3,7 +3,6 @@ module.exports = {
   ...require('./types/docx'),
   ...require('./types/json'),
   ...require('./types/md'),
-  // ...require('./pdf'),
   ...require('./types/txt'),
   ...require('./utils/buffer'),
   ...require('./utils/text'),

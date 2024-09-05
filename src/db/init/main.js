@@ -1,155 +1,285 @@
-// const mongoose = require('mongoose');
-// const bcrypt = require('bcrypt');
-// const path = require('path');
-// const profileImagePath = path.join(__dirname, '../../../public/avatar1.png');
-// const { User } = require('../../models'); // Assuming models are in models.js
+const { getMainSystemMessageContent, getMainAssistantMessageInstructions } = require('@/lib/prompts/createPrompt');
+const {
+  User,
+  Workspace,
+  Folder,
+  File,
+  ChatSession,
+  Message,
+  Prompt,
+  Collection,
+  Model,
+  Preset,
+  Assistant,
+  Tool,
+  JwtSecret,
+} = require('@/models'); // Adjust the path as needed
+const { uniqueId } = require('lodash');
+const createWorkspace = async user => {
+  const workspaceData = {
+    userId: user._id,
+    folders: [],
+    files: [],
+    chatSessions: [],
+    assistants: [],
+    tools: [],
+    presets: [],
+    prompts: [],
+    models: [],
+    collections: [],
 
-// const initializeUser = async (userData) => {
-//   try {
-//     const newUser = new User({
-//       ...userData,
-//       profile: {
-//         ...userData.profile,
-//         img: profileImagePath,
-//         imagePath: profileImagePath,
-//       },
-//     });
+    selectedPreset: null,
+    name: 'Home Workspace',
+    imagePath: 'http://localhost:3001/static/avatar3.png',
+    active: true,
 
-//     // Hash the password
-//     newUser.auth.password = await bcrypt.hash(userData.auth.password, 10);
+    defaultContextLength: 4000,
+    defaultTemperature: 0.9,
 
-//     // Save the new user
-//     await newUser.save();
+    embeddingsProvider: 'openai',
+    instructions: '',
+    sharing: 'private',
+    includeProfileContext: false,
+    includeWorkspaceInstructions: false,
+    isHome: true,
+    type: 'home',
+  };
 
-//     console.log('User initialized successfully:', newUser);
-//   } catch (error) {
-//     console.error('Error initializing user:', error);
-//   }
-// };
+  const workspace = new Workspace(workspaceData);
+  await workspace.save();
+  return workspace;
+};
 
-// // Sample user data
-// const userData = {
-//   username: 'sampleUser',
-//   email: 'sample@example.com',
-//   firstName: 'Sample',
-//   lastName: 'User',
-//   dateJoined: new Date(),
-//   isActive: true,
-//   auth: {
-//     password: 'password123',
-//     management: {
-//       rateLimit: 0,
-//       createdAt: new Date(),
-//       updatedAt: new Date(),
-//     },
-//     chatModelPrivileges: [],
-//     lastLogin: new Date(),
-//     isSuperuser: false,
-//   },
-//   authSession: {
-//     token: '',
-//     tokenType: '',
-//     accessToken: '',
-//     refreshToken: '',
-//     expiresIn: 3600,
-//     expiresAt: Date.now() + 3600000,
-//     createdAt: new Date(),
-//   },
-//   profile: {
-//     img: profileImagePath,
-//     imagePath: profileImagePath,
-//     profileImages: [],
-//     selectedProfileImage: profileImagePath,
-//     bio: '',
-//     displayName: '',
-//     hasOnboarded: false,
-//     identity: {
-//       identityId: '',
-//       userId: '',
-//       identityData: {
-//         email: '',
-//         emailVerified: false,
-//         phoneVerified: false,
-//         sub: '',
-//       },
-//       provider: '',
-//       lastSignInAt: null,
-//     },
-//     openai: {
-//       apiKey: '',
-//       organizationId: '',
-//       apiVersion: '',
-//       projects: [],
-//     },
-//     stats: {
-//       totalMessages: 0,
-//       totalTokenCount: 0,
-//       totalMessages3Days: 0,
-//       totalTokenCount3Days: 0,
-//     },
-//     location: {
-//       city: '',
-//       state: '',
-//       country: '',
-//     },
-//     social: {
-//       facebook: '',
-//       twitter: '',
-//       instagram: '',
-//       linkedin: '',
-//       github: '',
-//       website: '',
-//     },
-//     dashboard: {
-//       projects: new Map(),
-//     },
-//     settings: {
-//       user: {
-//         theme: 'light',
-//         fontSize: 16,
-//         language: 'en',
-//         timezone: 'Seattle',
-//       },
-//       chat: {
-//         presets: {
-//           contextLength: 0,
-//           description: '',
-//           embeddingsProvider: '',
-//           folderId: '',
-//           includeProfileContext: false,
-//           includeWorkspaceInstructions: false,
-//           model: '',
-//           name: '',
-//           prompt: '',
-//           sharing: '',
-//           temperature: 0,
-//           userId: '',
-//         },
-//       },
-//     },
-//   },
-//   openai: {
-//     apiKey: '',
-//     organizationId: '',
-//     apiVersion: '',
-//     projects: [],
-//   },
-//   appMetadata: {
-//     provider: '',
-//     providers: [],
-//   },
-//   workspaces: [],
-//   assistants: [],
-//   prompts: [],
-//   chatSessions: [],
-//   folders: [],
-//   files: [],
-//   collections: [],
-//   models: [],
-//   tools: [],
-//   presets: [],
-// };
+const createFolders = async (user, workspace) => {
+  const folderTypes = [
+    'chatSessions',
+    'assistants',
+    'files',
+    'models',
+    'tool',
+    'tools',
+    'presets',
+    'prompts',
+    'collections',
+  ];
 
-// // initializeUser(userData);
+  const folders = [];
 
-// module.exports = { initializeUser };
+  for (const type of folderTypes) {
+    let uniqueName = uniqueId(`${type}_folder`);
+    let counter = 1;
+
+    // Ensure the folder name is unique within the user's workspace
+    while (await Folder.exists({ userId: user._id, workspaceId: workspace._id, name: uniqueName })) {
+      uniqueName = `${type}_folder-${counter}`;
+      counter += 1;
+    }
+
+    const folderData = {
+      userId: user._id,
+      workspaceId: workspace._id,
+      name: uniqueName,
+      description: `${type} folder`, // Default description, can be customized
+      type: type,
+      items: [],
+    };
+
+    const folder = new Folder(folderData);
+    await folder.save();
+    folders.push(folder);
+    workspace.folders.push(folder._id);
+    await workspace.save();
+    user.folders.push(folder._id);
+    await user.save();
+  }
+
+  return folders;
+};
+
+const createFile = async (user, folder) => {
+  const fileData = {
+    userId: user._id,
+    folderId: folder._id,
+    name: 'Deep Learning Research.pdf',
+    description: 'A comprehensive paper on deep learning.',
+    filePath: '/public/static/defaultFiles/default.pdf',
+    data: null,
+    size: 2048,
+    tokens: 3500,
+    type: 'pdf',
+    sharing: 'private',
+    mimeType: 'application/pdf',
+    metadata: {
+      fileSize: 2048,
+      fileType: 'pdf',
+      lastModified: new Date(),
+    },
+  };
+
+  const file = new File(fileData);
+  await file.save();
+  return file;
+};
+
+const createChatSession = async (user, workspace, assistant, folder) => {
+  const chatSessionData = {
+    name: 'First Chat',
+    topic: 'Getting Started',
+    userId: user._id,
+    workspaceId: workspace._id,
+    assistantId: assistant._id,
+    folder: folder._id,
+    model: 'gpt-4-turbo-preview',
+    prompt: "Let's start our first conversation.",
+    active: true,
+    activeSessionId: null,
+    settings: {
+      maxTokens: 500,
+      temperature: 0.7,
+      model: 'gpt-4-turbo-preview',
+      topP: 1,
+      n: 1,
+      debug: false,
+      summarizeMode: false,
+    },
+    messages: [],
+    stats: {
+      tokenUsage: 0,
+      messageCount: 0,
+    },
+    tuning: {
+      debug: false,
+      summary: '',
+      summarizeMode: false,
+    },
+  };
+
+  const chatSession = new ChatSession(chatSessionData);
+  await chatSession.save();
+  return chatSession;
+};
+
+const createPreset = async (user, folder) => {
+  const presetData = {
+    userId: user._id,
+    folderId: folder._id,
+    name: 'Default Preset',
+    description: 'Default preset for new users',
+    contextLength: 4000,
+    embeddingsProvider: 'openai',
+    includeProfileContext: true,
+    includeWorkspaceInstructions: true,
+    model: 'gpt-4-turbo-preview',
+    prompt: 'Default prompt',
+    sharing: 'private',
+    temperature: 0.7,
+  };
+
+  const preset = new Preset(presetData);
+  await preset.save();
+  return preset;
+};
+
+const createAssistant = async (user, folder, file) => {
+  const assistantData = {
+    userId: user._id,
+    folderId: folder._id,
+    name: 'Default Assistant',
+    description: 'This is the default assistant.',
+    model: 'gpt-4-turbo-preview',
+    imagePath: '/public/images/default-assistant.png',
+    sharing: 'private',
+    instructions: 'You are a helpful assistant.',
+    contextLength: 4000,
+    includeProfileContext: true,
+    includeWorkspaceInstructions: true,
+    prompt: 'You are a helpful assistant.',
+    temperature: 0.7,
+    embeddingsProvider: 'openai',
+    tools: [],
+    toolResources: {
+      codeInterpreter: {
+        fileIds: [file._id],
+      },
+    },
+  };
+
+  const assistant = new Assistant(assistantData);
+  await assistant.save();
+  return assistant;
+};
+
+const createPrompt = async (user, folder) => {
+  const promptData = {
+    userId: user._id,
+    folderId: folder._id,
+    content: 'You are a helpful assistant. How can I assist you today?',
+    name: 'Default Prompt',
+    sharing: 'private',
+  };
+
+  const prompt = new Prompt(promptData);
+  await prompt.save();
+  return prompt;
+};
+
+const createCollection = async (user, folder) => {
+  const collectionData = {
+    userId: user._id,
+    folderId: folder._id,
+    name: 'Default Collection',
+    description: 'This is the default collection',
+    sharing: 'private',
+  };
+
+  const collection = new Collection(collectionData);
+  await collection.save();
+  return collection;
+};
+
+const createTool = async (user, folder) => {
+  const toolData = {
+    userId: user._id,
+    folderId: folder._id,
+    description: 'This is the default tool',
+    name: 'Default Tool',
+    schema: {},
+    url: 'http://example.com',
+    sharing: 'private',
+  };
+
+  const tool = new Tool(toolData);
+  await tool.save();
+  return tool;
+};
+
+const createModel = async (user, folder) => {
+  const modelData = {
+    userId: user._id,
+    folderId: folder._id,
+    name: 'Default Model',
+    description: 'This is the default model',
+    modelId: 'gpt-4-turbo-preview',
+    baseUrl: 'https://api.openai.com/v1',
+    apiKey: '',
+    contextLength: 4000,
+    sharing: 'private',
+  };
+
+  const model = new Model(modelData);
+  await model.save();
+  return model;
+};
+
+module.exports = {
+  createWorkspace,
+  createFolders,
+  createFile,
+  createPreset,
+  createAssistant,
+  createChatSession,
+  createPrompt,
+  createCollection,
+  createTool,
+  createModel,
+};

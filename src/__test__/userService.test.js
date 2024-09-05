@@ -5,7 +5,7 @@ const userService = require('../controllers').services;
 
 jest.mock('bcrypt');
 jest.mock('jsonwebtoken');
-jest.mock('../../models');
+jest.mock('@/models');
 
 describe('User Service', () => {
   describe('registerUser', () => {

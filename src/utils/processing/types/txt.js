@@ -1,6 +1,6 @@
 const { encode } = require('gpt-tokenizer');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const { CHUNK_SIZE, CHUNK_OVERLAP } = require('../../../config/constants');
+const { CHUNK_SIZE, CHUNK_OVERLAP } = require('@/config/constants');
 
 const processTxt = async txt => {
   const fileBuffer = Buffer.from(await txt.arrayBuffer());

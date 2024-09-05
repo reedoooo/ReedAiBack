@@ -1,0 +1,84 @@
+{
+  "tools": [
+    {
+      "name": "summarize_messages",
+      "description": "Summarize a list of chat messages with an overall summary and individual message summaries including their IDs.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "overallSummary": {
+            "type": "string",
+            "description": "An overall summary of the chat messages."
+          },
+          "individualSummaries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The ID of the chat message."
+                },
+                "summary": {
+                  "type": "string",
+                  "description": "A summary of the individual chat message."
+                }
+              },
+              "required": ["id", "summary"]
+            }
+          }
+        },
+        "required": ["overallSummary", "individualSummaries"]
+      }
+    },
+    {
+      "name": "fetch_search_results",
+      "description": "Fetch search results for a given query using SERP API, used to aid in being a private investigator.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Query string to search for."
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "code_interpreter",
+      "description": "Execute and interpret code snippets.",
+      "schema": {
+        "type": "code_interpreter"
+      }
+    },
+    {
+      "name": "file_search",
+      "description": "Search and retrieve files from a specified database or storage.",
+      "schema": {
+        "type": "retrieval"
+      }
+    },
+    {
+      "name": "analyze_image",
+      "description": "Analyze the content of an image using OpenAI's Vision API.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "description": "URL of the image to analyze."
+          }
+        },
+        "required": ["imageUrl"]
+      }
+    }
+  ],
+  "toolPrompts": {
+    "SUMMARIZE_MESSAGES": "{\"name\":\"summarize_messages\",\"description\":\"Summarize a list of chat messages with an overall summary and individual message summaries including their IDs.\",\"schema\":{\"type\":\"object\",\"properties\":{\"overallSummary\":{\"type\":\"string\",\"description\":\"An overall summary of the chat messages.\"},\"individualSummaries\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"description\":\"The ID of the chat message.\"},\"summary\":{\"type\":\"string\",\"description\":\"A summary of the individual chat message.\"}},\"required\":[\"id\",\"summary\"]}},\"required\":[\"overallSummary\",\"individualSummaries\"]}}",
+    "FETCH_SEARCH_RESULTS": "{\"name\":\"fetch_search_results\",\"description\":\"Fetch search results for a given query using SERP API, used to aid in being a private investigator.\",\"schema\":{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"Query string to search for.\"}},\"required\":[\"query\"]}}",
+    "ANALYZE_IMAGE": "{\"name\":\"analyze_image\",\"description\":\"Analyze the content of an image using OpenAI's Vision API.\",\"schema\":{\"type\":\"object\",\"properties\":{\"imageUrl\":{\"type\":\"string\",\"description\":\"URL of the image to analyze.\"}},\"required\":[\"imageUrl\"]}}",
+    "FILE_SEARCH": "{\"name\":\"file_search\",\"description\":\"Search and retrieve files from a specified database or storage.\",\"schema\":{\"type\":\"retrieval\"}}",
+    "CODE_INTERPRETER": "{\"name\":\"code_interpreter\",\"description\":\"Execute and interpret code snippets.\",\"schema\":{\"type\":\"code_interpreter\"}}"
+  }
+}

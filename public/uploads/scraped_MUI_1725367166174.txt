@@ -1,0 +1,651 @@
+(function() {
+try {
+  let colorScheme = '';
+  const mode = localStorage.getItem('mui-mode') || 'system';
+  const dark = localStorage.getItem('mui-color-scheme-dark') || 'dark';
+  const light = localStorage.getItem('mui-color-scheme-light') || 'light';
+  if (mode === 'system') {
+    // handle system mode
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mql.matches) {
+      colorScheme = dark
+    } else {
+      colorScheme = light
+    }
+  }
+  if (mode === 'light') {
+    colorScheme = light;
+  }
+  if (mode === 'dark') {
+    colorScheme = dark;
+  }
+  if (colorScheme) {
+    document.documentElement.setAttribute('data-mui-color-scheme', colorScheme);
+  }
+} catch(e){}})();(function() {
+try {
+  let colorScheme = '';
+  const mode = localStorage.getItem('joy-mode') || 'system';
+  const dark = localStorage.getItem('joy-color-scheme-dark') || 'dark';
+  const light = localStorage.getItem('joy-color-scheme-light') || 'light';
+  if (mode === 'system') {
+    // handle system mode
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mql.matches) {
+      colorScheme = dark
+    } else {
+      colorScheme = light
+    }
+  }
+  if (mode === 'light') {
+    colorScheme = light;
+  }
+  if (mode === 'dark') {
+    colorScheme = dark;
+  }
+  if (colorScheme) {
+    document.documentElement.setAttribute('data-joy-color-scheme', colorScheme);
+  }
+} catch(e){}})();Skip to contentMaterial UIv6.0.2Getting startedComponentsAll componentsInputsAutocompleteButtonButton GroupCheckboxFloating Action ButtonRadio GroupRatingSelectSliderSwitchText FieldTransfer ListToggle ButtonData displayAvatarBadgeChipDividerIconsMaterial IconsListTableTooltipTypographyFeedbackAlertBackdropDialogProgressSkeletonSnackbarSurfacesAccordionApp BarCardPaperNavigationBottom NavigationBreadcrumbsDrawerLinkMenuPaginationSpeed DialStepperTabsLayoutBoxContainerGridDeprecatedGrid v2StackImage ListHiddenUtilsClick-Away ListenerCSS BaselineModalNo SSRPopoverPopperPortalTextarea AutosizeTransitionsuseMediaQueryMUI XData GridDate & Time PickersChartsTree ViewToolpad CoreNewDashboard LayoutSign-in PageLabAbout the lab 🧪MasonryTimelineComponent APICustomizationHow-to guidesIntegrationsExperimental APIsMigrationDiscover moreDesign resourcesTemplate store
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      
+      
+      +
+      
+        
+          
+        
+    
+      
+      
+      
+      ButtonButtons allow users to take actions, and make choices, with a single tap.
+
+Buttons communicate actions that users can take. They are typically placed throughout your UI, in places like:
+
+Modal windows
+Forms
+Cards
+Toolbars
+
+FeedbackBundle sizeSourceWAI-ARIAMaterial DesignFigmaAdobeSketchBasic buttonThe Button comes with three variants: text (default), contained, and outlined.
+TextContainedOutlined<Button variant="text">Text</Button>
+<Button variant="contained">Contained</Button>
+<Button variant="outlined">Outlined</Button><Button variant="text">Text</Button>
+<Button variant="contained">Contained</Button>
+<Button variant="outlined">Outlined</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingText buttonText buttons
+are typically used for less-pronounced actions, including those located: in dialogs, in cards.
+In cards, text buttons help maintain an emphasis on card content.
+PrimaryDisabledLink<Button>Primary</Button>
+<Button disabled>Disabled</Button>
+<Button href="#text-buttons">Link</Button><Button>Primary</Button>
+<Button disabled>Disabled</Button>
+<Button href="#text-buttons">Link</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingContained buttonContained buttons
+are high-emphasis, distinguished by their use of elevation and fill.
+They contain actions that are primary to your app.
+ContainedDisabledLink<Button variant="contained">Contained</Button>
+<Button variant="contained" disabled>
+  Disabled
+</Button>
+<Button variant="contained" href="#contained-buttons">
+  Link
+</Button><Button variant="contained">Contained</Button>
+<Button variant="contained" disabled>
+  Disabled
+</Button>
+<Button variant="contained" href="#contained-buttons">
+  Link
+</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingYou can remove the elevation with the disableElevation prop.
+Disable elevation<Button variant="contained" disableElevation>
+  Disable elevation
+</Button><Button variant="contained" disableElevation>
+  Disable elevation
+</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingOutlined buttonOutlined buttons are medium-emphasis buttons.
+They contain actions that are important but aren't the primary action in an app.
+Outlined buttons are also a lower emphasis alternative to contained buttons,
+or a higher emphasis alternative to text buttons.
+PrimaryDisabledLink<Button variant="outlined">Primary</Button>
+<Button variant="outlined" disabled>
+  Disabled
+</Button>
+<Button variant="outlined" href="#outlined-buttons">
+  Link
+</Button><Button variant="outlined">Primary</Button>
+<Button variant="outlined" disabled>
+  Disabled
+</Button>
+<Button variant="outlined" href="#outlined-buttons">
+  Link
+</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingHandling clicksAll components accept an onClick handler that is applied to the root DOM element.
+<Button
+  onClick={() => {
+    alert('clicked');
+  }}
+>
+  Click me
+</Button>
+CopyCopied(or $keyC)
+Note that the documentation avoids mentioning native props (there are a lot) in the API section of the components.
+ColorSecondarySuccessError<Button color="secondary">Secondary</Button>
+<Button variant="contained" color="success">
+  Success
+</Button>
+<Button variant="outlined" color="error">
+  Error
+</Button><Button color="secondary">Secondary</Button>
+<Button variant="contained" color="success">
+  Success
+</Button>
+<Button variant="outlined" color="error">
+  Error
+</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingIn addition to using the default button colors, you can add custom ones, or disable any you don't need. See the Adding new colors examples for more info.
+SizesFor larger or smaller buttons, use the size prop.
+SmallMediumLargeSmallMediumLargeSmallMediumLargeButtons with icons and labelSometimes you might want to have icons for certain buttons to enhance the UX of the application as we recognize logos more easily than plain text. For example, if you have a delete button you can label it with a dustbin icon.
+DeleteSend<Button variant="outlined" startIcon={<DeleteIcon />}>
+  Delete
+</Button>
+<Button variant="contained" endIcon={<SendIcon />}>
+  Send
+</Button><Button variant="outlined" startIcon={<DeleteIcon />}>
+  Delete
+</Button>
+<Button variant="contained" endIcon={<SendIcon />}>
+  Send
+</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingIcon buttonIcon buttons are commonly found in app bars and toolbars.
+Icons are also appropriate for toggle buttons that allow a single choice to be selected or
+deselected, such as adding or removing a star to an item.
+<IconButton aria-label="delete">
+  <DeleteIcon />
+</IconButton>
+<IconButton aria-label="delete" disabled color="primary">
+  <DeleteIcon />
+</IconButton>
+<IconButton color="secondary" aria-label="add an alarm">
+  <AlarmIcon />
+</IconButton>
+<IconButton color="primary" aria-label="add to shopping cart">
+  <AddShoppingCartIcon />
+</IconButton><IconButton aria-label="delete">
+  <DeleteIcon />
+</IconButton>
+<IconButton aria-label="delete" disabled color="primary">
+  <DeleteIcon />
+</IconButton>
+<IconButton color="secondary" aria-label="add an alarm">
+  <AlarmIcon />
+</IconButton>
+<IconButton color="primary" aria-label="add to shopping cart">
+  <AddShoppingCartIcon />
+</IconButton>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingSizesFor larger or smaller icon buttons, use the size prop.
+<IconButton aria-label="delete" size="small">
+  <DeleteIcon fontSize="inherit" />
+</IconButton>
+<IconButton aria-label="delete" size="small">
+  <DeleteIcon fontSize="small" />
+</IconButton>
+<IconButton aria-label="delete" size="large">
+  <DeleteIcon />
+</IconButton>
+<IconButton aria-label="delete" size="large">
+  <DeleteIcon fontSize="inherit" />
+</IconButton><IconButton aria-label="delete" size="small">
+  <DeleteIcon fontSize="inherit" />
+</IconButton>
+<IconButton aria-label="delete" size="small">
+  <DeleteIcon fontSize="small" />
+</IconButton>
+<IconButton aria-label="delete" size="large">
+  <DeleteIcon />
+</IconButton>
+<IconButton aria-label="delete" size="large">
+  <DeleteIcon fontSize="inherit" />
+</IconButton>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingColorsUse color prop to apply theme color palette to component.
+<IconButton aria-label="fingerprint" color="secondary">
+  <Fingerprint />
+</IconButton>
+<IconButton aria-label="fingerprint" color="success">
+  <Fingerprint />
+</IconButton><IconButton aria-label="fingerprint" color="secondary">
+  <Fingerprint />
+</IconButton>
+<IconButton aria-label="fingerprint" color="success">
+  <Fingerprint />
+</IconButton>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingFile uploadTo create a file upload button, turn the button into a label using component="label" and then create a visually-hidden input with type file.
+Upload files<Button
+  component="label"
+  role={undefined}
+  variant="contained"
+  tabIndex={-1}
+  startIcon={<CloudUploadIcon />}
+>
+  Upload files
+  <VisuallyHiddenInput
+    type="file"
+    onChange={(event) => console.log(event.target.files)}
+    multiple
+  />
+</Button><Button
+  component="label"
+  role={undefined}
+  variant="contained"
+  tabIndex={-1}
+  startIcon={<CloudUploadIcon />}
+>
+  Upload files
+  <VisuallyHiddenInput
+    type="file"
+    onChange={(event) => console.log(event.target.files)}
+    multiple
+  />
+</Button>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingCustomizationHere are some examples of customizing the component.
+You can learn more about this in the overrides documentation page.
+Custom CSSBootstrap🎨 If you are looking for inspiration, you can check MUI Treasury's customization examples.
+Complex buttonThe Text Buttons, Contained Buttons, Floating Action Buttons and Icon Buttons are built on top of the same component: the ButtonBase.
+You can take advantage of this lower-level component to build custom interactions.
+BreakfastBurgersCameraThird-party routing libraryOne frequent use case is to perform navigation on the client only, without an HTTP round-trip to the server.
+The ButtonBase component provides the component prop to handle this use case.
+Here is a more detailed guide.
+LimitationsCursor not-allowedThe ButtonBase component sets pointer-events: none; on disabled buttons, which prevents the appearance of a disabled cursor.
+If you wish to use not-allowed, you have two options:
+
+CSS only. You can remove the pointer-events style on the disabled state of the <button> element:
+
+.MuiButtonBase-root:disabled {
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+CopyCopied(or $keyC)
+However:
+
+You should add pointer-events: none; back when you need to display tooltips on disabled elements.
+The cursor won't change if you render something other than a button element, for instance, a link <a> element.
+
+
+DOM change. You can wrap the button:
+
+<span style={{ cursor: 'not-allowed' }}>
+  <Button component={Link} disabled>
+    disabled
+  </Button>
+</span>
+CopyCopied(or $keyC)
+This has the advantage of supporting any element, for instance, a link <a> element.
+Experimental APIsLoading button@mui/lab offers loading buttons that can show loading state and disable interactions.
+SubmitLoading…Fetch dataSave<LoadingButton loading variant="outlined">
+  Submit
+</LoadingButton>
+<LoadingButton loading loadingIndicator="Loading…" variant="outlined">
+  Fetch data
+</LoadingButton>
+<LoadingButton
+  loading
+  loadingPosition="start"
+  startIcon={<SaveIcon />}
+  variant="outlined"
+>
+  Save
+</LoadingButton><LoadingButton loading variant="outlined">
+  Submit
+</LoadingButton>
+<LoadingButton loading loadingIndicator="Loading…" variant="outlined">
+  Fetch data
+</LoadingButton>
+<LoadingButton
+  loading
+  loadingPosition="start"
+  startIcon={<SaveIcon />}
+  variant="outlined"
+>
+  Save
+</LoadingButton>
+/**
+ * Reset the text fill color so that placeholder is visible
+ */
+.npm__react-simple-code-editor__textarea:empty {
+  -webkit-text-fill-color: inherit !important;
+}
+
+/**
+ * Hack to apply on some CSS on IE10 and IE11
+ */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+  /**
+    * IE doesn't support '-webkit-text-fill-color'
+    * So we use 'color: transparent' to make the text transparent on IE
+    * Unlike other browsers, it doesn't affect caret color in IE
+    */
+  .npm__react-simple-code-editor__textarea {
+    color: transparent !important;
+  }
+
+  .npm__react-simple-code-editor__textarea::selection {
+    background-color: #accef7 !important;
+    color: transparent !important;
+  }
+}
+Press Enter to start editingToggle the loading switch to see the transition between the different states.
+LoadingDisabledLoading…Fetch dataSendSaveDisabledLoading…Fetch dataSendSaveUnstyledUse the Base UI Button for complete ownership of the component's design, with no Material UI or Joy UI styles to override.
+This unstyled version of the component is the ideal choice for heavy customization with a smaller bundle size.
+        
+APISee the documentation below for a complete reference to all of the props and classes available to the components mentioned here.
+
+<Button />
+<ButtonBase />
+<IconButton />
+<LoadingButton />
+
+Edit this pageWas this page helpful?AutocompleteButton Group•Blog •Store MUI stands in solidarity with Ukraine.ContentsBasic buttonText buttonContained buttonOutlined buttonHandling clicksColorSizesButtons with icons and labelIcon buttonSizesColorsFile uploadCustomizationComplex buttonThird-party routing libraryLimitationsCursor not-allowedExperimental APIsLoading buttonUnstyledAPIBecome a Diamond sponsor
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = gtag;
+gtag('js', new Date());
+gtag('config', 'G-5NXDQLC2ZK', {
+  send_page_view: false,
+});
+{"props":{"pageProps":{"userLanguage":"en","translations":{"en":{"pages":{"/system/getting-started-group":"Getting started","/system/getting-started":"Overview","/system/getting-started/installation":"Installation","/system/getting-started/usage":"Usage","/system/getting-started/the-sx-prop":"The sx prop","/system/getting-started/custom-components":"Custom components","/system/getting-started/support":"Support","/style-utilities":"Style utilities","/system/properties":"Properties","/system/borders":"Borders","/system/display":"Display","/system/flexbox":"Flexbox","/system/grid":"Grid","/system/palette":"Palette","/system/positions":"Positions","/system/shadows":"Shadows","/system/sizing":"Sizing","/system/spacing":"Spacing","/system/screen-readers":"Screen readers","/system/typography":"Typography","/system/styled":"styled","/system/react-":"Components","/system/react-box":"Box","/system/react-container":"Container","/system/react-grid":"Grid","/system/react-stack":"Stack","/system/migration":"Migration","/system/migration/migrating-to-v6":"Migrating to v6","/system/experimental-api":"Experimental APIs","/system/experimental-api/configure-the-sx-prop":"Configure the sx prop","/system/experimental-api/css-theme-variables":"CSS Theme Variables","/system/styles":"Styles","/system/styles/basics":"Basics","/system/styles/advanced":"Advanced","/base-ui/getting-started-group":"Getting started","/base-ui/getting-started":"Overview","/base-ui/getting-started/quickstart":"Quickstart","/base-ui/getting-started/usage":"Usage","/base-ui/getting-started/customization":"Customization","/base-ui/getting-started/accessibility":"Accessibility","/base-ui/getting-started/roadmap":"Roadmap","/base-ui/getting-started/support":"Support","/base-ui/react-":"Components","/base-ui/all-components":"All components","inputs":"Inputs","/base-ui/react-autocomplete":"Autocomplete","/base-ui/react-button":"Button","/base-ui/react-checkbox":"Checkbox","/base-ui/react-input":"Input","/base-ui/react-number-input":"Number Input","/base-ui/react-radio-group":"Radio Group","/base-ui/react-rating":"Rating","/base-ui/react-select":"Select","/base-ui/react-slider":"Slider","/base-ui/react-switch":"Switch","/base-ui/react-toggle-button-group":"Toggle Button Group","data-display":"Data display","/base-ui/react-badge":"Badge","/base-ui/react-tooltip":"Tooltip","feedback":"Feedback","/base-ui/react-snackbar":"Snackbar","surfaces":"Surfaces","/base-ui/react-accordion":"Accordion","navigation":"Navigation","/base-ui/react-drawer":"Drawer","/base-ui/react-menu":"Menu","/base-ui/react-pagination":"Pagination","/base-ui/react-table-pagination":"Table Pagination","/base-ui/react-tabs":"Tabs","utils":"Utils","/base-ui/react-click-away-listener":"Click-Away Listener","/base-ui/react-focus-trap":"Focus Trap","/base-ui/react-form-control":"Form Control","/base-ui/react-modal":"Modal","/base-ui/react-no-ssr":"No-SSR","/base-ui/react-popper":"Popper","/base-ui/react-popup":"Popup","/base-ui/react-portal":"Portal","/base-ui/react-textarea-autosize":"Textarea Autosize","/base-ui/react-transitions":"Transitions","/base-ui/react-badge/components-api/#badge":"Badge","/base-ui/react-button/components-api/#button":"Button","/base-ui/react-click-away-listener/components-api/#click-away-listener":"ClickAwayListener","/base-ui/react-transitions/components-api/#css-animation":"CssAnimation","/base-ui/react-transitions/components-api/#css-transition":"CssTransition","/base-ui/react-menu/components-api/#dropdown":"Dropdown","/base-ui/react-focus-trap/components-api/#focus-trap":"FocusTrap","/base-ui/react-form-control/components-api/#form-control":"FormControl","/base-ui/react-input/components-api/#input":"Input","/base-ui/react-menu/components-api/#menu":"Menu","/base-ui/react-menu/components-api/#menu-button":"MenuButton","/base-ui/react-menu/components-api/#menu-item":"MenuItem","/base-ui/react-modal/components-api/#modal":"Modal","/base-ui/react-no-ssr/components-api/#no-ssr":"NoSsr","/base-ui/react-number-input/components-api/#number-input":"NumberInput","/base-ui/react-select/components-api/#option":"Option","/base-ui/react-select/components-api/#option-group":"OptionGroup","/base-ui/react-popper/components-api/#popper":"Popper","/base-ui/react-popup/components-api/#popup":"Popup","/base-ui/react-portal/components-api/#portal":"Portal","/base-ui/react-select/components-api/#select":"Select","/base-ui/react-slider/components-api/#slider":"Slider","/base-ui/react-snackbar/components-api/#snackbar":"Snackbar","/base-ui/react-switch/components-api/#switch":"Switch","/base-ui/react-tabs/components-api/#tab":"Tab","/base-ui/react-tabs/components-api/#tab-panel":"TabPanel","/base-ui/react-table-pagination/components-api/#table-pagination":"TablePagination","/base-ui/react-tabs/components-api/#tabs":"Tabs","/base-ui/react-tabs/components-api/#tabs-list":"TabsList","/base-ui/react-textarea-autosize/components-api/#textarea-autosize":"TextareaAutosize","/base-ui/react-autocomplete/hooks-api/#use-autocomplete":"useAutocomplete","/base-ui/react-badge/hooks-api/#use-badge":"useBadge","/base-ui/react-button/hooks-api/#use-button":"useButton","/base-ui/react-menu/hooks-api/#use-dropdown":"useDropdown","/base-ui/react-form-control/hooks-api/#use-form-control-context":"useFormControlContext","/base-ui/react-input/hooks-api/#use-input":"useInput","/base-ui/react-menu/hooks-api/#use-menu":"useMenu","/base-ui/react-menu/hooks-api/#use-menu-button":"useMenuButton","/base-ui/react-menu/hooks-api/#use-menu-item":"useMenuItem","/base-ui/react-menu/hooks-api/#use-menu-item-context-stabilizer":"useMenuItemContextStabilizer","/base-ui/react-modal/hooks-api/#use-modal":"useModal","/base-ui/react-number-input/hooks-api/#use-number-input":"useNumberInput","/base-ui/react-select/hooks-api/#use-option":"useOption","/base-ui/react-select/hooks-api/#use-option-context-stabilizer":"useOptionContextStabilizer","/base-ui/react-select/hooks-api/#use-select":"useSelect","/base-ui/react-slider/hooks-api/#use-slider":"useSlider","/base-ui/react-snackbar/hooks-api/#use-snackbar":"useSnackbar","/base-ui/react-switch/hooks-api/#use-switch":"useSwitch","/base-ui/react-tabs/hooks-api/#use-tab":"useTab","/base-ui/react-tabs/hooks-api/#use-tab-panel":"useTabPanel","/base-ui/react-tabs/hooks-api/#use-tabs":"useTabs","/base-ui/react-tabs/hooks-api/#use-tabs-list":"useTabsList","/base-ui/react-transitions/hooks-api/#use-transition-state-manager":"useTransitionStateManager","/base-ui/react-transitions/hooks-api/#use-transition-trigger":"useTransitionTrigger","/base-ui/guides":"How-to guides","/base-ui/guides/working-with-tailwind-css":"Working with Tailwind CSS","/base-ui/guides/overriding-component-structure":"Overriding component structure","/base-ui/guides/next-js-app-router":"Next.js App Router","/material-ui/getting-started-group":"Getting started","/material-ui/getting-started":"Overview","/material-ui/getting-started/installation":"Installation","/material-ui/getting-started/usage":"Usage","/material-ui/getting-started/example-projects":"Example projects","/material-ui/getting-started/templates":"Templates","/material-ui/getting-started/learn":"Learn","/material-ui/getting-started/design-resources":"Design resources","/material-ui/getting-started/faq":"FAQs","/material-ui/getting-started/supported-components":"Supported components","/material-ui/getting-started/supported-platforms":"Supported platforms","/material-ui/getting-started/support":"Support","/material-ui/react-":"Components","/material-ui/all-components":"All components","/material-ui/react-autocomplete":"Autocomplete","/material-ui/react-button":"Button","/material-ui/react-button-group":"Button Group","/material-ui/react-checkbox":"Checkbox","/material-ui/react-floating-action-button":"Floating Action Button","/material-ui/react-radio-button":"Radio Group","/material-ui/react-rating":"Rating","/material-ui/react-select":"Select","/material-ui/react-slider":"Slider","/material-ui/react-switch":"Switch","/material-ui/react-text-field":"Text Field","/material-ui/react-transfer-list":"Transfer List","/material-ui/react-toggle-button":"Toggle Button","/material-ui/react-avatar":"Avatar","/material-ui/react-badge":"Badge","/material-ui/react-chip":"Chip","/material-ui/react-divider":"Divider","/material-ui/icons":"Icons","/material-ui/material-icons":"Material Icons","/material-ui/react-list":"List","/material-ui/react-table":"Table","/material-ui/react-tooltip":"Tooltip","/material-ui/react-typography":"Typography","/material-ui/react-alert":"Alert","/material-ui/react-backdrop":"Backdrop","/material-ui/react-dialog":"Dialog","/material-ui/react-progress":"Progress","/material-ui/react-skeleton":"Skeleton","/material-ui/react-snackbar":"Snackbar","/material-ui/react-accordion":"Accordion","/material-ui/react-app-bar":"App Bar","/material-ui/react-card":"Card","/material-ui/react-paper":"Paper","/material-ui/react-bottom-navigation":"Bottom Navigation","/material-ui/react-breadcrumbs":"Breadcrumbs","/material-ui/react-drawer":"Drawer","/material-ui/react-link":"Link","/material-ui/react-menu":"Menu","/material-ui/react-pagination":"Pagination","/material-ui/react-speed-dial":"Speed Dial","/material-ui/react-stepper":"Stepper","/material-ui/react-tabs":"Tabs","layout":"Layout","/material-ui/react-box":"Box","/material-ui/react-container":"Container","/material-ui/react-grid":"Grid","/material-ui/react-grid2":"Grid v2","/material-ui/react-stack":"Stack","/material-ui/react-image-list":"Image List","/material-ui/react-hidden":"Hidden","/material-ui/react-click-away-listener":"Click-Away Listener","/material-ui/react-css-baseline":"CSS Baseline","/material-ui/react-modal":"Modal","/material-ui/react-no-ssr":"No SSR","/material-ui/react-popover":"Popover","/material-ui/react-popper":"Popper","/material-ui/react-portal":"Portal","/material-ui/react-textarea-autosize":"Textarea Autosize","/material-ui/transitions":"Transitions","/material-ui/react-use-media-query":"useMediaQuery","MUI X":"MUI X","lab":"Lab","/material-ui/about-the-lab":"About the lab 🧪","/material-ui/react-masonry":"Masonry","/material-ui/react-timeline":"Timeline","/material-ui/customization":"Customization","/material-ui/customization/how-to-customize":"How to customize","/material-ui/customization/dark-mode":"Dark mode","/material-ui/customization/color":"Color","/material-ui/customization/right-to-left":"Right-to-left","/material-ui/customization/shadow-dom":"Shadow DOM","/material-ui/customization/theme":"Theme","/material-ui/customization/default-theme":"Default theme viewer","/material-ui/customization/theming":"Customizing the theme","/material-ui/customization/creating-themed-components":"Creating themed components","/material-ui/customization/theme-components":"Components","tokens":"Tokens","/material-ui/customization/palette":"Palette","/material-ui/customization/typography":"Typography","/material-ui/customization/spacing":"Spacing","/material-ui/customization/breakpoints":"Breakpoints","/material-ui/customization/container-queries":"Container queries","/material-ui/customization/density":"Density","/material-ui/customization/z-index":"z-index","/material-ui/customization/transitions":"Transitions","/material-ui/customization/css-variables":"Css variables","/material-ui/customization/css-theme-variables/overview":"Overview","/material-ui/customization/css-theme-variables/usage":"Basic usage","/material-ui/customization/css-theme-variables/configuration":"Advanced configuration","/material-ui/guides":"How-to guides","/material-ui/guides/minimizing-bundle-size":"Minimizing bundle size","/material-ui/guides/server-rendering":"Server rendering","/material-ui/guides/responsive-ui":"Responsive UI","/material-ui/guides/testing":"Testing","/material-ui/guides/localization":"Localization","/material-ui/guides/typescript":"TypeScript","/material-ui/guides/composition":"Composition","/material-ui/guides/content-security-policy":"Content Security Policy","/material-ui/integrations":"Integrations","/material-ui/integrations/nextjs":"Next.js integration","/material-ui/integrations/routing":"Routing libraries","/material-ui/integrations/styled-components":"Usage with styled-components","/material-ui/integrations/interoperability":"Style library interoperability","/material-ui/integrations/theme-scoping":"Theme scoping","/material-ui/experimental-api":"Experimental APIs","/material-ui/experimental-api/classname-generator":"ClassName generator","/material-ui/migration":"Migration","/material-ui/migration/migration-grid-v2":"Migrating to Grid v2","/material-ui/migration/pickers-migration":"Migration from @material-ui/pickers","Upgrade to v6":"Upgrade to v6","/material-ui/migration/upgrade-to-v6":"Upgrade to v6: getting started","/material-ui/migration/migrating-from-deprecated-apis":"Migrating from deprecated APIs","/material-ui/migration/migrating-to-pigment-css":"Migrating to Pigment CSS","Upgrade to v5":"Upgrade to v5","/material-ui/migration/migration-v4":"Migrating to v5: getting started","/material-ui/migration/v5-style-changes":"Breaking changes: style and theme","/material-ui/migration/v5-component-changes":"Breaking changes: components","/material-ui/migration/migrating-from-jss":"Migrating from JSS (optional)","/material-ui/migration/troubleshooting":"Troubleshooting","Earlier versions":"Earlier versions","/material-ui/migration/migration-v3":"Migration from v3 to v4","/material-ui/migration/migration-v0x":"Migration from v0.x to v1","/material-ui/discover-more":"Discover more","/material-ui/discover-more/showcase":"Showcase","/material-ui/discover-more/related-projects":"Related projects","/material-ui/discover-more/roadmap":"Roadmap","/material-ui/discover-more/backers":"Sponsors and Backers","/material-ui/discover-more/vision":"Vision","/material-ui/discover-more/changelog":"Changelog","/material-ui/design-resources":"Design resources","/material-ui/design-resources/material-ui-for-figma":"Figma Design Kit","/material-ui/design-resources/material-ui-sync":"Figma Sync plugin","https://mui.com/store/?utm_source=docs\u0026utm_medium=referral\u0026utm_campaign=sidenav":"Template store","/joy-ui/getting-started-group":"Getting started","/joy-ui/getting-started":"Overview","/joy-ui/getting-started/installation":"Installation","/joy-ui/getting-started/usage":"Usage","/joy-ui/getting-started/tutorial":"Tutorial","/joy-ui/getting-started/templates":"Templates","/joy-ui/getting-started/roadmap":"Roadmap","/joy-ui/getting-started/support":"Support","main-features":"Main features","/joy-ui/main-features/global-variants":"Global variants","/joy-ui/main-features/color-inversion":"Color inversion","/joy-ui/main-features/automatic-adjustment":"Automatic adjustment","/joy-ui/main-features/dark-mode-optimization":"Dark mode optimization","/joy-ui/react-":"Components","/joy-ui/react-autocomplete":"Autocomplete","/joy-ui/react-button":"Button","/joy-ui/react-button-group":"Button Group","/joy-ui/react-checkbox":"Checkbox","/joy-ui/react-input":"Input","/joy-ui/react-radio-button":"Radio Button","/joy-ui/react-select":"Select","/joy-ui/react-slider":"Slider","/joy-ui/react-switch":"Switch","/joy-ui/react-textarea":"Textarea","/joy-ui/react-text-field":"Text Field","/joy-ui/react-toggle-button-group":"Toggle Button Group","/joy-ui/react-aspect-ratio":"Aspect Ratio","/joy-ui/react-avatar":"Avatar","/joy-ui/react-badge":"Badge","/joy-ui/react-chip":"Chip","/joy-ui/react-divider":"Divider","/joy-ui/react-list":"List","/joy-ui/react-table":"Table","/joy-ui/react-tooltip":"Tooltip","/joy-ui/react-typography":"Typography","/joy-ui/react-alert":"Alert","/joy-ui/react-circular-progress":"Circular Progress","/joy-ui/react-linear-progress":"Linear Progress","/joy-ui/react-modal":"Modal","/joy-ui/react-skeleton":"Skeleton","/joy-ui/react-snackbar":"Snackbar","/joy-ui/react-accordion":"Accordion","/joy-ui/react-card":"Card","/joy-ui/react-sheet":"Sheet","/joy-ui/react-breadcrumbs":"Breadcrumbs","/joy-ui/react-drawer":"Drawer","/joy-ui/react-link":"Link","/joy-ui/react-menu":"Menu","/joy-ui/react-stepper":"Stepper","/joy-ui/react-tabs":"Tabs","/joy-ui/react-box":"Box","/joy-ui/react-grid":"Grid","/joy-ui/react-stack":"Stack","/joy-ui/react-css-baseline":"CSS Baseline","/joy-ui/customization":"Customization","/joy-ui/customization/approaches":"Approaches","Theme":"Theme","/joy-ui/customization/theme-colors":"Colors","/joy-ui/customization/theme-shadow":"Shadow","/joy-ui/customization/theme-typography":"Typography","/joy-ui/customization/themed-components":"Components","Guides":"Guides","/joy-ui/customization/dark-mode":"Dark mode","/joy-ui/customization/using-css-variables":"Using CSS variables","/joy-ui/customization/creating-themed-components":"Creating themed components","/joy-ui/customization/overriding-component-structure":"Overriding the component structure","/joy-ui/customization/right-to-left":"Right-to-left support","Tools":"Tools","/joy-ui/customization/default-theme-viewer":"Default theme viewer","/joy-ui/customization/theme-builder":"Theme builder","/joy-ui/integrations":"Integrations","/joy-ui/integrations/next-js-app-router":"Next.js App Router","/joy-ui/integrations/material-ui":"Usage with Material UI","/joy-ui/integrations/icon-libraries":"Using other icon libraries","/joy-ui/migration":"Migration","/joy-ui/migration/migrating-default-theme":"Migrating the default theme"}}}}},"page":"/material-ui/react-button","query":{"userLanguage":"en"},"buildId":"Qw12OeANZSWaWENXPKmwc","nextExport":true,"isFallback":false,"appGip":true,"scriptLoader":[{"strategy":"afterInteractive","src":"https://www.googletagmanager.com/gtag/js?id=G-5NXDQLC2ZK"}]}

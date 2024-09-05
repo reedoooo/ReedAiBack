@@ -13,6 +13,10 @@ const errorHandler = (err, req, res, next) => {
 		res.json({
 			message: err.message,
 			stack: err.stack,
+      error: err.message,
+      statusCode,
+      status: err.name,
+      functionName: err.stack.split("\n")[1]?.trim()?.split(" ")[1], // Function name, if applicable
 		});
   } else {
     next();

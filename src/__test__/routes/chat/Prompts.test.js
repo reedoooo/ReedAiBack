@@ -2,7 +2,7 @@
 
 const request = require('supertest');
 const express = require('express');
-const controller = require('../../../controllers').chat;
+const controller = require('@/controllers').chat;
 
 const {
   createChatPrompt,
@@ -17,7 +17,7 @@ const {
 
 const app = express();
 app.use(express.json());
-app.use('/api/chat/prompts', require('../../../routes/chat/Prompts'));
+app.use('/api/chat/prompts', require('@/routes/chat/Prompts'));
 
 describe('Chat Prompts Routes', () => {
   it('should create a chat prompt', async () => {

@@ -2,8 +2,8 @@
 
 const request = require('supertest');
 const express = require('express');
-const { handleUpload } = require('../../../middlewares/uploads');
-const controller = require('../../../controllers').chat;
+const { handleUpload } = require('@/middlewares/uploads');
+const controller = require('@/controllers').chat;
 const controllers = {
   ...controller.main,
   ...controller.original,
@@ -12,13 +12,11 @@ const { openAIChatCompletionAPIWithStreamHandler, generate, chatStream } = contr
 
 const app = express();
 app.use(express.json());
-app.use('/api/chat/misc', require('../../../routes/chat/Misc'));
+app.use('/api/chat/misc', require('@/routes/chat/Misc'));
 
 describe('Chat Miscellaneous Routes', () => {
   it('should create a pdfFile', async () => {
-    const response = await request(app)
-      .post('/api/chat/misc/create')
-      .attach('file', 'path/to/file.pdf');
+    const response = await request(app).post('/api/chat/misc/create').attach('file', 'path/to/file.pdf');
     expect(response.status).toBe(200);
   });
 

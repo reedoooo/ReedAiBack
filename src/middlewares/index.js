@@ -5,18 +5,16 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const { morganMiddleware } = require('./morganMiddleware');
-const { unifiedErrorHandler } = require('./unifiedErrorHandler');
+// const { unifiedErrorHandler } = require('./old/unifiedErrorHandler');
 const path = require('path');
 const session = require('express-session');
 const { db } = require('../config/env');
 
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const { getDB } = require('../db');
 const { User } = require('../models');
 const MongoStore = require('connect-mongo');
-// require('swagger-ui-express');
-// require('swagger-jsdoc');
+const { logger } = require('@/config/logging');
 
 /**
  * Configures and applies middlewares to the Express application.
@@ -38,7 +36,7 @@ const middlewares = app => {
   app.use(morganMiddleware);
 
   // Enable response compression for better performance
-  app.use(compression({ threshold: 512 }));
+  // app.use(compression({ threshold: 512 }));
 
   // Parse incoming JSON requests
   app.use(express.json());
@@ -47,7 +45,7 @@ const middlewares = app => {
   app.use(express.urlencoded({ extended: true }));
 
   // Parse cookies attached to client requests
-  app.use(cookieParser());
+  app.use(cookieParser(process.env.COOKIE_SECRET));
 
   // Configure CORS settings
   const corsOptions = {
@@ -59,36 +57,25 @@ const middlewares = app => {
   };
   app.use(cors(corsOptions));
 
-  // Configure session management with MongoDB store
-  // app.use(
-  //   session({
-  //     secret: process.env.SESSION_SECRET,
-  //     resave: false,
-  //     saveUninitialized: false,
-  //     store: new MongoStore({ mongooseConnection: require('./db') }),
-  //     cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }, // 7 days
-  //   })
-  // );
   // Session configuration
   app.use(
     session({
       secret: process.env.SESSION_SECRET,
       resave: false,
-      saveUninitialized: true,
+      saveUninitialized: false,
       store: new MongoStore({
         mongoUrl: db,
-        ttl: 1000 * 60 * 60 * 24, // 1 day
+        // ttl: 1000 * 60 * 60 * 24, // 1 day
       }),
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24, // 1 day
-      },
+      cookie: { maxAge: 1000 * 60 * 60 * 24, secure: process.env.NODE_ENV === 'production' },
     })
   );
 
-  // Passport configuration
+  // Passport configuration for user authentication
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Configure local strategy for user authentication
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
       try {
@@ -107,6 +94,7 @@ const middlewares = app => {
     })
   );
 
+  // Serialize and deserialize user for session management
   passport.serializeUser((user, done) => {
     done(null, user.id);
   });
@@ -124,7 +112,8 @@ const middlewares = app => {
   const publicDir = path.join(__dirname, '../../public');
   app.use(express.static(publicDir));
 
-  const staticDirs = ['static', 'uploads', 'downloads', 'files', 'generated'];
+  const staticDirs = ['static', 'uploads'];
+
   staticDirs.forEach(dir => {
     app.use(`/static/${dir}`, cors(corsOptions), express.static(path.join(publicDir, `static/${dir}`)));
   });
@@ -136,6 +125,7 @@ const middlewares = app => {
 
   // Middleware for handling Server-Sent Events
   app.use(async (req, res, next) => {
+    // logger.info(`REQUEST: ${req.method} ${req.url} - IP: ${req.ip} HEADER: ${JSON.stringify(req.headers)}`, req.headers);
     if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -155,7 +145,7 @@ const middlewares = app => {
     })
   );
 
-  app.use(unifiedErrorHandler);
+  // app.use(unifiedErrorHandler);
 };
 
 module.exports = middlewares;

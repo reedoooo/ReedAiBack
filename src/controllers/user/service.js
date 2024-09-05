@@ -3,12 +3,12 @@
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const { User } = require('../../models');
+const { User } = require('@/models');
 require('dotenv').config();
 
 const validateToken = token => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     return decoded;
   } catch (error) {
     throw new Error('Invalid token');

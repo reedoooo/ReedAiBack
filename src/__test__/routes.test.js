@@ -4,7 +4,7 @@ const app = express();
 
 // Import all route files
 const authRoutes = require('../routes/auth');
-const chatRoutes = require('../routes/chat');
+const chatRoutes = require('../routes/chat-sessions');
 const fileRoutes = require('../routes/files');
 const userRoutes = require('../routes/user');
 

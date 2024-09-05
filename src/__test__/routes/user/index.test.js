@@ -1,7 +1,7 @@
 const express = require('express');
 const request = require('supertest');
 const multer = require('multer');
-const userRoutes = require('../../../routes');
+const userRoutes = require('@/routes');
 const userController = require('../../controllers/user/controller');
 
 jest.mock('../../controllers/user/controller');
@@ -22,7 +22,7 @@ describe('User Routes', () => {
     const res = await request(app).post('/api/user/register').send({
       username: 'testuser',
       email: 'test@test.com',
-      password: 'password123'
+      password: 'password123',
     });
 
     expect(userController.registerUser).toHaveBeenCalled();
@@ -34,7 +34,7 @@ describe('User Routes', () => {
 
     const res = await request(app).post('/api/user/login').send({
       usernameOrEmail: 'testuser',
-      password: 'password123'
+      password: 'password123',
     });
 
     expect(userController.loginUser).toHaveBeenCalled();

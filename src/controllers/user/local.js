@@ -1,15 +1,13 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcrypt');
-const logger = require('../../config/logging');
 require('dotenv').config();
-const { User, Folder } = require('../../models');
+const { User, Folder } = require('@/models');
 const passport = require('passport');
-// const { revokeToken } = require('../../utils');
 const {
   createWorkspace,
-  createFolder,
+  createFolders,
   createFile,
   createPreset,
   createAssistant,
@@ -18,7 +16,8 @@ const {
   createCollection,
   createTool,
   createModel,
-} = require('../../db/init'); // Adjust the path as needed
+} = require('@/db/init'); // Adjust the path as needed
+const { logger } = require('@/config/logging');
 const defaultUserData = {
   username: '',
   email: '',
@@ -145,11 +144,10 @@ const checkDuplicate = async (Model, query) => {
   const existingItem = await Model.findOne(query);
   return existingItem ? existingItem : null;
 };
-// Helper function to generate tokens
 const generateTokens = user => {
-  const payload = { userId: user._id };
+  // const payload = { userId: user._id };
   const expiresIn = 60 * 60 * 24; // 24 hours
-  const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn });
+  const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_ACCESS_SECRET, { expiresIn });
   const refreshToken = jwt.sign({ userId: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn });
   return { accessToken, refreshToken, expiresIn };
 };
@@ -183,41 +181,77 @@ const registerUser = async (req, res) => {
     await user.save();
 
     // Initialize user data
-    // const workspace = (await checkDuplicate(Workspace, { userId: user._id })) || (await createWorkspace(user));
-    // Initialize user data
     const workspace = await createWorkspace(user);
-    const folder = new Folder({
-      userId: user._id,
-      workspaceId: workspace._id,
-      name: 'Home Folder',
-      // name: type.charAt(0).toUpperCase() + type.slice(1),
-      type: 'workspace',
-      description: `Default folder for ${workspace}`,
-    });
-    const file = await createFile(user, folder);
-    const preset = await createPreset(user, folder);
-    const assistant = await createAssistant(user, folder, file);
-    const chatSession = await createChatSession(user, workspace, assistant);
-    const prompt = await createPrompt(user, folder);
-    const collection = await createCollection(user, folder);
-    const tool = await createTool(user, folder);
-    const model = await createModel(user, folder);
+    const folders = await createFolders(user, workspace);
 
-    // Update user with created data
-    user.workspaces.push(workspace._id);
-    user.folders.push(folder._id);
-    user.files.push(file._id);
-    user.presets.push(preset._id);
-    user.assistants.push(assistant._id);
-    user.chatSessions.push(chatSession._id);
-    user.prompts.push(prompt._id);
-    user.collections.push(collection._id);
-    user.tools.push(tool._id);
-    user.models.push(model._id);
-    await user.save();
+    // Create items and associate them with folders
+    const file = await createFile(
+      user,
+      folders.find(folder => folder.type === 'files')
+    );
+    const preset = await createPreset(
+      user,
+      folders.find(folder => folder.type === 'presets')
+    );
+    const assistant = await createAssistant(
+      user,
+      folders.find(folder => folder.type === 'assistants'),
+      file
+    );
+    const chatSession = await createChatSession(
+      user,
+      workspace,
+      assistant,
+      folders.find(folder => folder.type === 'chatSessions')
+    );
+    const prompt = await createPrompt(
+      user,
+      folders.find(folder => folder.type === 'prompts')
+    );
+    const collection = await createCollection(
+      user,
+      folders.find(folder => folder.type === 'collections')
+    );
+    const tool = await createTool(
+      user,
+      folders.find(folder => folder.type === 'tools')
+    );
+    const model = await createModel(
+      user,
+      folders.find(folder => folder.type === 'models')
+    );
 
+    // Push items into their respective folders
+    folders.find(folder => folder.type === 'files').items.push(file._id);
+    folders.find(folder => folder.type === 'presets').items.push(preset._id);
+    folders.find(folder => folder.type === 'assistants').items.push(assistant._id);
+    folders.find(folder => folder.type === 'chatSessions').items.push(chatSession._id);
+    folders.find(folder => folder.type === 'prompts').items.push(prompt._id);
+    folders.find(folder => folder.type === 'collections').items.push(collection._id);
+    folders.find(folder => folder.type === 'tools').items.push(tool._id);
+    folders.find(folder => folder.type === 'models').items.push(model._id);
+
+    // Save folders
+    await Promise.all(folders.map(folder => folder.save()));
+
+    // Push item IDs to workspace
+    workspace.files.push(file._id);
+    workspace.presets.push(preset._id);
+    workspace.assistants.push(assistant._id);
+    workspace.chatSessions.push(chatSession._id);
+    workspace.prompts.push(prompt._id);
+    workspace.collections.push(collection._id);
+    workspace.tools.push(tool._id);
+    workspace.models.push(model._id);
+
+    // Save workspace
+    await workspace.save();
+
+    // Push workspace ID to user
     user.workspaces = user.workspaces.includes(workspace._id) ? user.workspaces : [...user.workspaces, workspace._id];
+    user.userId = user._id;
 
+    await user.save();
     logger.info(`User registered: ${user.username}`);
 
     const { accessToken, refreshToken, expiresIn } = generateTokens(user);
@@ -262,7 +296,6 @@ const registerUser = async (req, res) => {
     }
   }
 };
-
 const loginUser = async (req, res, next) => {
   try {
     const { usernameOrEmail, password } = req.body;
@@ -280,14 +313,22 @@ const loginUser = async (req, res, next) => {
     }
 
     const expiresIn = 60 * 60 * 2; // 2 hours
-    const accessToken = jwt.sign({
-      userId: user._id,
-      username: user.username,
-      email: user.email,
-    }, process.env.JWT_SECRET, { expiresIn });
-    const refreshToken = jwt.sign({
-      userId: user._id,
-    }, process.env.JWT_REFRESH_SECRET, { expiresIn });
+    const accessToken = jwt.sign(
+      {
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+      },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn }
+    );
+    const refreshToken = jwt.sign(
+      {
+        userId: user._id,
+      },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn }
+    );
     user.authSession = {
       token: accessToken,
       tokenType: 'Bearer',
@@ -296,31 +337,72 @@ const loginUser = async (req, res, next) => {
       expiresIn,
       expiresAt: Date.now() + expiresIn * 1000,
       createdAt: new Date(),
-    }
+    };
 
     await user.save();
     logger.info(`User logged in: ${user.email}`);
     const populatedUser = await User.findById(user._id).populate([
       'workspaces',
+      {
+        path: 'workspaces',
+        populate: {
+          path: 'chatSessions',
+          model: 'ChatSession', // Replace 'Message' with the actual name of your Message model
+        },
+        populate: {
+          path: 'folders',
+          model: 'Folder', // Replace 'Message' with the actual name of your Message model
+        },
+        populate: {
+          path: 'files',
+          model: 'File', // Replace 'Message' with the actual name of your Message model
+        },
+      },
       'assistants',
       'prompts',
-      'chatSessions',
-      'folders',
+      {
+        path: 'chatSessions',
+        populate: {
+          path: 'messages',
+          model: 'ChatMessage', // Replace 'Message' with the actual name of your Message model
+        },
+      },
+      {
+        path: 'folders',
+        populate: [
+          {
+            path: 'items',
+            refPath: 'itemType',
+          },
+          {
+            path: 'subfolders',
+            model: 'Folder',
+            populate: {
+              path: 'items',
+              refPath: 'itemType',
+            },
+          },
+        ],
+      },
       'files',
       'collections',
       'models',
       'tools',
       'presets',
     ]);
-    res
-      .status(200)
-      .json({ accessToken, refreshToken, expiresIn, userId: user._id, message: 'Logged in successfully', user: populatedUser });
+    res.status(200).json({
+      accessToken,
+      refreshToken,
+      expiresIn,
+      userId: user._id,
+      message: 'Logged in successfully',
+      user: populatedUser,
+    });
   } catch (error) {
     logger.error(`Error logging in: ${error.message}`);
-    res.status(500).json({ message: 'Error logging in', error: error.message });
+    res.status(500).json({ message: 'Error logging in', error: error.message, stack: error.stack, status: error.name });
   }
 };
-
 const logoutUser = async (req, res) => {
   try {
     // Check if there's a token in the request
@@ -351,7 +433,18 @@ const logoutUser = async (req, res) => {
     res.status(500).json({ message: 'Error logging out', error: error.message });
   }
 };
-
+const addApiKey = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    user.openai.apiKey = req.body.apiKey;
+    user.profile.openai.apiKey = req.body.apiKey;
+    await user.save();
+    res.status(201).json({ user, message: 'API key added successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding API key', error: error.message });
+  }
+};
 const validateToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -359,16 +452,20 @@ const validateToken = async (req, res) => {
       return res.status(401).send('No token provided');
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     if (!decoded) {
       return res.status(401).send('Invalid token');
     }
     res.send('Token is valid');
   } catch (error) {
-    res.status(401).send(error.message);
+    res.status(401).send({
+      message: 'Error validating token',
+      error: error.message,
+      stack: error.stack,
+      status: error.name,
+    });
   }
 };
-
 const uploadProfileImage = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -379,7 +476,6 @@ const uploadProfileImage = async (req, res) => {
     res.status(500).send('Error uploading image: ' + error.message);
   }
 };
-
 const getProfileImage = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -389,7 +485,6 @@ const getProfileImage = async (req, res) => {
     res.status(500).send('Error retrieving image: ' + error.message);
   }
 };
-
 const updateUserProfile = async (req, res) => {
   try {
     const { userId, updatedData } = req.params;
@@ -400,7 +495,6 @@ const updateUserProfile = async (req, res) => {
     res.status(500).send('Error updating user profile: ' + error.message);
   }
 };
-
 const refreshToken = async (req, res) => {
   try {
     const { token } = req.body;
@@ -421,7 +515,6 @@ const refreshToken = async (req, res) => {
     res.status(401).json({ message: 'Invalid token', error: error.message });
   }
 };
-
 module.exports = {
   registerUser,
   loginUser,
@@ -431,4 +524,5 @@ module.exports = {
   getProfileImage,
   updateUserProfile,
   refreshToken,
+  addApiKey,
 };

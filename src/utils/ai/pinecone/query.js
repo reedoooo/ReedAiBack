@@ -2,9 +2,8 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 const { OpenAI } = require('@langchain/openai');
 const { loadQAStuffChain } = require('langchain/chains');
 const { Document } = require('langchain/document');
-const { getEnv } = require('../../api');
-const { vectorize } = require('../../processing/utils/vectorize');
 const { getPineconeClient } = require('./get');
+const { vectorize } = require('@/utils/processing/utils');
 
 const queryPineconeVectorStoreAndQueryLLM = async (pinecone, indexName, question, embeddings) => {
   console.log('Querying Pinecone vector store...');
@@ -27,7 +26,7 @@ const queryPineconeVectorStoreAndQueryLLM = async (pinecone, indexName, question
 
     if (queryResponse.matches.length) {
       const llm = new OpenAI({
-        apiKey: getEnv('OPENAI_API_KEY') || process.env.OPENAI_API_KEY,
+        apiKey: getEnv('OPENAI_API_PROJECT_KEY') || process.env.OPENAI_API_PROJECT_KEY,
         model: 'gpt-4-1106-preview',
         temperature: 0.7, // Adjust as needed
       });

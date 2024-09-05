@@ -5,22 +5,21 @@
 // 5. Enter API keys in .env file
 // Optional: if you want to use other file loaders (https://js.langchain.com/docs/modules/indexes/document_loaders/examples/file_loaders/)
 
+const path = require('path');
 const { DirectoryLoader } = require('langchain/document_loaders/fs/directory');
 const { TextLoader } = require('langchain/document_loaders/fs/text');
 const { Pinecone } = require('@pinecone-database/pinecone');
+const { PDFLoader } = require('@langchain/community/document_loaders/fs/pdf');
+const { OpenAIEmbeddings } = require('@langchain/openai');
+const { CSVLoader } = require('@langchain/community/document_loaders/fs/csv');
 const { createPineconeIndex } = require('./create.js');
 const { updatePinecone } = require('./update.js');
 const { queryPineconeVectorStoreAndQueryLLM } = require('./query.js');
-const { PDFLoader } = require('@langchain/community/document_loaders/fs/pdf');
-const { getEnv } = require('../../api/env.js');
-const { CSVLoader } = require('@langchain/community/document_loaders/fs/csv');
-const path = require('path');
-const { OpenAIEmbeddings } = require('@langchain/openai');
-const { processDocument } = require('../../processing/utils/main.js');
+const { getEnv } = require('@/utils/api/env.js');
 
 require('dotenv').config();
 
-const publicFilesDirectory = path.join(__dirname, '../../../../public/files');
+const publicFilesDirectory = path.join(__dirname, '@/public/files');
 // 7. Set up DirectoryLoader to load documents from the ./documents directory
 const loader = new DirectoryLoader(publicFilesDirectory, {
   '.txt': path => new TextLoader(path),
@@ -48,7 +47,7 @@ const chatCompletionWithLLM = async data => {
     const flattenedDocs = processedDocs.flat();
 
     const embeddings = new OpenAIEmbeddings({
-      apiKey: getEnv('OPENAI_API_KEY') || process.env.OPENAI_API_KEY,
+      apiKey: getEnv('OPENAI_API_PROJECT_KEY') || process.env.OPENAI_API_PROJECT_KEY,
       dimensions: 512, // Ensure dimensions are passed as an integer
       model: getEnv('EMBEDDING_MODEL') || process.env.EMBEDDING_MODEL,
     });

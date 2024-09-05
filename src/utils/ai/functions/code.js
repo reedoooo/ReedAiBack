@@ -1,66 +1,21 @@
 const axios = require('axios');
 require('dotenv').config();
 const threadByUser = {}; // Store thread IDs by user
-const tools = [
-  {
-    type: 'function',
-    function: {
-      name: 'fetchSearchResults',
-      description: 'Fetch search results for a given query using SERP API used to aid in being  PRIVATE INVESTIGATOR',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            description: 'Query string to search for',
-          },
-        },
-        required: ['query'],
-      },
-    },
-  },
-  {
-    type: 'code_interpreter',
-    // Details about the code interpreter tool
-  },
-  {
-    type: 'retrieval',
-    // Details about the retrieval tool
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'analyzeImage',
-      description: "Analyze the content of an image using OpenAI's Vision API",
-      parameters: {
-        type: 'object',
-        properties: {
-          imageUrl: {
-            type: 'string',
-            description: 'URL of the image to analyze',
-          },
-        },
-        required: ['imageUrl'],
-      },
-      // Function logic or reference here (e.g., analyzeImageWithVisionAPI)
-    },
-  },
-  // Additional tools can be added here
-];
 
 async function FetchFrameworkDocumentation(framework) {
   const frameworkDocs = {
-    'Material-UI': 'https://mui.com/components/',
-    'Chakra UI': 'https://chakra-ui.com/docs/getting-started',
+    MUI: 'https://mui.com/components/',
+    CHAKRA_UI: 'https://chakra-ui.com/docs/getting-started',
+    REACT_BOOTSTRAP: 'https://react-bootstrap.github.io/',
+    TAILWIND: 'https://tailwindcss.com/docs',
+    RADIX_UI: 'https://www.radix-ui.com/primitives/docs',
+    SHADCN: 'https://ui.shadcn.com/docs',
   };
 
   const url = frameworkDocs[framework];
   if (!url) {
     throw new Error('Unsupported framework');
   }
-
-  // Mock function to simulate fetching documentation
-  // In a real scenario, use fetch or another HTTP client
   const response = await fetch(url);
   const documentation = await response.text();
 
@@ -68,14 +23,17 @@ async function FetchFrameworkDocumentation(framework) {
 }
 
 async function fetchSearchResults(query) {
+  let data = JSON.stringify({
+    q: query,
+  });
   const config = {
     method: 'post',
     url: 'https://google.serper.dev/search',
     headers: {
-      'X-API-KEY': 'dink',
+      'X-API-KEY': process.env.GOOGLE_SERPER_API_KEY,
       'Content-Type': 'application/json',
     },
-    data: JSON.stringify({ q: query }),
+    data: data,
   };
 
   try {
@@ -88,7 +46,7 @@ async function fetchSearchResults(query) {
       // const scrapedData = await scrapeLinkedIn(result.link);
       const scrapedData = {
         scrapedContent: 'Not available', // Placeholder value
-      }
+      };
       result['scrapedContent'] = scrapedData;
     }
     return results;
@@ -145,7 +103,6 @@ async function checkStatusAndPrintMessages(threadId, runId, intervalId) {
   } else {
     console.log('Run is not completed yet.');
   }
-
 }
 
 async function analyzeImageWithVisionAPI(url) {
@@ -155,7 +112,7 @@ async function analyzeImageWithVisionAPI(url) {
 }
 
 module.exports = {
-	fetchSearchResults,
+  fetchSearchResults,
   analyzeImagesInText,
   checkStatusAndPrintMessages,
   analyzeImageWithVisionAPI,

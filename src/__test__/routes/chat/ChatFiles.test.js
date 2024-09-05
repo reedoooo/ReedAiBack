@@ -2,8 +2,8 @@
 
 const request = require('supertest');
 const express = require('express');
-const { handleUpload } = require('../../../middlewares/upload'); // Adjust the path if necessary
-const controller = require('../../../controllers').chat;
+const { handleUpload } = require('@/middlewares/upload'); // Adjust the path if necessary
+const controller = require('@/controllers').chat;
 
 const {
   getChatFilesByChatId,
@@ -17,7 +17,7 @@ const {
 
 const app = express();
 app.use(express.json());
-app.use('/api/chat/files', require('../../../routes/chat/ChatFiles'));
+app.use('/api/chat/files', require('../../../../ignore/chatfiles'));
 
 describe('Chat Files Routes', () => {
   it('should upload a file', async () => {

@@ -1,6 +1,6 @@
 const express = require('express');
 const request = require('supertest');
-const chatRoutes = require('../../../routes');
+const chatRoutes = require('@/routes');
 // const chatSessionsRoutes = require('../chat/Sessions');
 // const chatMessagesRoutes = require('../chat/Messages');
 

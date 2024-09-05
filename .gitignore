@@ -11,7 +11,7 @@ package-lock.json
 # Ignore the ignore directory
 /ignore
 # Ignore logs
-/src/config/logging
+/src/config/logging/logs
 
 # Ignore the node_modules directory
 /node_modules
@@ -19,7 +19,3 @@ package-lock.json
 .github/workflows
 .github
 .github/workflow
-/src/config/logs
-src/config/logs
-/cover-letter-generator
-cover-letter-generator

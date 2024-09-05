@@ -6,8 +6,8 @@
 module.exports = {
   ...require('./create.js'),
   ...require('./main.js'),
-  ...require('./old.js'),
   ...require('./update.js'),
   ...require('./query.js'),
   ...require('./get.js'),
+  ...require('./customUpsert.js'),
 };
