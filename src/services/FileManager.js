@@ -1,21 +1,10 @@
 const fs = require('fs').promises;
 const path = require('path');
-const { MongoClient } = require('mongodb');
 
 class FileManager {
-  constructor(basePath, dbUri) {
+  constructor(basePath, filesCollection) {
     this.basePath = basePath;
-    this.client = new MongoClient(dbUri, { useNewUrlParser: true, useUnifiedTopology: true });
-    this.db = this.client.db('ragDatabase');
-    this.filesCollection = this.db.collection('files');
-  }
-
-  async connect() {
-    try {
-      await this.client.connect();
-    } catch (error) {
-      console.error('Error connecting to MongoDB:', error);
-    }
+    this.filesCollection = filesCollection;
   }
 
   async saveFile(category, fileName, content) {
@@ -71,20 +60,4 @@ class FileManager {
     return !/[\/\\:*?"<>|]/.test(fileName);
   }
 }
-
-// Usage
-(async () => {
-  const fileManager = new FileManager('/path/to/data', 'mongodb://localhost:27017');
-  await fileManager.connect();
-
-  // Example of saving a document
-  await fileManager.saveFile('documents', 'article1.txt', 'Article content...');
-
-  // Example of retrieving a document
-  const content = await fileManager.getFile('documents', 'article1.txt');
-  console.log(content);
-
-  // Example of listing files in a category
-  const documents = await fileManager.listFiles('documents');
-  console.log(documents);
-})();
+module.exports = { FileManager };

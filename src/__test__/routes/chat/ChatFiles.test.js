@@ -3,7 +3,7 @@
 const request = require('supertest');
 const express = require('express');
 const { handleUpload } = require('@/middlewares/upload'); // Adjust the path if necessary
-const controller = require('@/controllers').chat;
+const controller = require('@/config/env/controllers').chat;
 
 const {
   getChatFilesByChatId,

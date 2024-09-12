@@ -1,53 +1,76 @@
+const AuthorizationError = require('@/config/constants/errors/AuthorizationError');
 const { logger } = require('@/config/logging');
 const { User } = require('@/models');
 const jwt = require('jsonwebtoken');
 
+// Pull in Environment variables
+const ACCESS_TOKEN = {
+  secret: process.env.AUTH_ACCESS_TOKEN_SECRET,
+};
+
 const authenticate = async (req, res, next) => {
   try {
-    const token = req.headers.authorization.split(' ')[1];
-
-    if (!token) {
-      throw new Error('No token provided');
+    const authHeader = req.header('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new AuthorizationError('Authentication Error', undefined, 'You are unauthenticated!', {
+        error: 'invalid_access_token',
+        error_description: 'unknown authentication scheme',
+      });
     }
-    const decodedToken = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    const userId = decodedToken.userId;
-    if (!userId) {
-      throw new Error('Invalid token');
-    }
-    // Attach userId to the request object
-    req.userId = userId;
-    logger.info(`User ID: ${userId}`);
-    logger.info(`[USER ID AUTHENTICATED] User ID: ${userId}`);
 
-    const user = await User.findById(decodedToken.userId)
-      .populate('profile')
-      .populate('workspaces')
-      .populate('folders')
-      .populate('chatSessions');
-    if (req.body.userId && req.body.userId !== userId) {
-      throw new Error('Invalid user ID');
-    } else {
-      // Generate a new access token with updated expiration
-      const newToken = jwt.sign(
-        { userId: user._id },
-        process.env.JWT_ACCESS_SECRET,
-        { expiresIn: '1h' } // Set the desired expiration time for the new token
+    const accessToken = authHeader.split(' ')[1];
+
+    if (!accessToken) {
+      throw new AuthorizationError('Authentication Error', undefined, 'No access token provided', {
+        error: 'missing_access_token',
+        error_description: 'Access token is missing',
+      });
+    }
+
+    const decoded = jwt.verify(accessToken, ACCESS_TOKEN.secret);
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      throw new AuthorizationError('Authentication Error', undefined, 'User not found', {
+        error: 'invalid_user',
+        error_description: 'User associated with the token does not exist',
+      });
+    }
+
+    if (user.authSession.accessToken !== accessToken) {
+      throw new AuthorizationError('Authentication Error', undefined, 'Invalid access token', {
+        error: 'invalid_access_token',
+        error_description: 'Access token does not match the one stored in the user session',
+      });
+    }
+
+    // Attach authenticated user and Access Token to request object
+    req.user = user;
+    req.accessToken = accessToken;
+    next();
+  } catch (err) {
+    logger.error(`Authentication error: ${err.message}`);
+
+    if (err.name === 'TokenExpiredError') {
+      return next(
+        new AuthorizationError('Authentication Error', undefined, 'Token lifetime exceeded!', {
+          error: 'expired_access_token',
+          error_description: 'Access token is expired',
+        })
       );
-      // Update the response body with the new token and expiration
-      res.locals.accessToken = newToken;
-      res.locals.expiresIn = 3600; // Set the expiration time in seconds (e.g., 1 hour)
-      req.user = user;
-      next();
     }
-  } catch (error) {
-    logger.error(`Authentication failed: ${error.message}`);
-    res.status(401).json({
-      error: 'Authentication failed',
-      message: error.message,
-      status: 401,
-      stack: error.stack,
-    });
+
+    if (err instanceof AuthorizationError) {
+      return next(err);
+    }
+
+    next(
+      new AuthorizationError('Authentication Error', undefined, 'An error occurred during authentication', {
+        error: 'authentication_error',
+        error_description: err.message,
+      })
+    );
   }
 };
 
-module.exports = authenticate;
+module.exports = { authenticate };

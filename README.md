@@ -57,7 +57,7 @@ Create a `.env` file in the root directory and configure the necessary environme
     ```env
     PORT=3000
     DB_URI=mongodb://localhost:27017/coverLetterGenerator
-    JWT_ACCESS_SECRET=your_jwt_secret
+    AUTH_REFRESH_TOKEN_SECRET=your_jwt_secret
     ```
 
 ## Usage

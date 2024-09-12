@@ -9,7 +9,7 @@ const path = require('path');
 const { File } = require('@/models');
 
 const upsertDocs = async (req, res) => {
-  const { url, library, folderId, workspaceId } = req.body;
+  const { url, library, description, folderId, workspaceId } = req.body;
 
   try {
     // Validate input
@@ -28,7 +28,7 @@ const upsertDocs = async (req, res) => {
     }
 
     // Define file path and name
-    const fileName = `scraped_${library}_${Date.now()}.txt`;
+    const fileName = `${library}_scraped_${Date.now()}.txt`;
     const filePath = path.join(__dirname, '../../../../public/uploads', fileName);
 
     // Write the scraped content to a file

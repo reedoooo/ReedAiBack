@@ -1,7 +1,7 @@
 const express = require('express');
 const request = require('supertest');
 const chatMessagesRoutes = require('../chat/Messages');
-const controller = require('@/controllers').chat;
+const controller = require('@/config/env/controllers').chat;
 
 jest.mock('@/controllers');
 

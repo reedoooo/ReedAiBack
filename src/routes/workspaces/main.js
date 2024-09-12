@@ -1,13 +1,20 @@
 const express = require('express');
 const { asyncHandler } = require('@/utils/api/sync.js');
-const authenticate = require('@/middlewares/authenticate.js');
+// const {
+//   getAllWorkspaces,
+//   getWorkspaceById,
+//   createWorkspace,
+//   updateWorkspace,
+//   deleteWorkspace,
+// } = require('../../config/env/controllers/index.js');
+const { authenticate } = require('passport');
 const {
   getAllWorkspaces,
   getWorkspaceById,
   createWorkspace,
   updateWorkspace,
   deleteWorkspace,
-} = require('../../controllers/index.js');
+} = require('@/controllers');
 
 const router = express.Router();
 /**

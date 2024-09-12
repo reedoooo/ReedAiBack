@@ -1,6 +1,5 @@
 const { default: OpenAI } = require('openai');
 const { ChatSession: Session, Message, User, Workspace } = require('@/models');
-const { getMainSystemMessageContent } = require('@/lib/prompts/createPrompt');
 const { logger } = require('@/config/logging');
 const { streamWithCompletion } = require('@/utils/ai/openAi/chat/streaming');
 const { getEnv } = require('@/utils/api');
