@@ -1,18 +1,25 @@
 const express = require('express');
 const { asyncHandler } = require('@/utils/api/sync.js');
-const authenticate = require('@/middlewares/authenticate.js');
 const {
   ChatPresetController,
   ChatToolController,
   ChatModelController,
   ChatPromptController,
   ChatCollectionController,
-} = require('../../controllers/chat-items/settings.js');
+} = require('@/controllers');
+// const authenticate = require('@/middlewares/authenticate.js');
+// const {
+// ChatPresetController,
+// ChatToolController,
+// ChatModelController,
+// ChatPromptController,
+// ChatCollectionController,
+// } = require('../../config/env/controllers/chat-items/settings.js');
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authenticate);
+// router.use(authenticate);
 
 // Chat Preset routes
 router.get('/presets', asyncHandler(ChatPresetController.getAll));

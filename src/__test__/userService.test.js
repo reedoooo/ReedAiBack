@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User, Workspace, Chat, ChatSession, Message } = require('../models');
-const userService = require('../controllers').services;
+const userService = require('../config/env/controllers').services;
 
 jest.mock('bcrypt');
 jest.mock('jsonwebtoken');

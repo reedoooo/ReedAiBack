@@ -6,6 +6,7 @@ const fs = require('fs');
 const pdf = require('pdf-parse');
 const { populateVectorStore } = require('@/utils/ai/pinecone/populate');
 const mammoth = require('mammoth');
+const { logger } = require('@/config/logging');
 // Removed static require for @xenova/transformers
 
 // Function to dynamically import the ESM module

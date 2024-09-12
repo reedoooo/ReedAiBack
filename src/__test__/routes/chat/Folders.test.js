@@ -2,7 +2,7 @@
 
 const request = require('supertest');
 const express = require('express');
-const controller = require('@/controllers').chat;
+const controller = require('@/config/env/controllers').chat;
 const { getFolders, createFolder, updateFolder, deleteFolder } = controller.folders;
 
 const app = express();

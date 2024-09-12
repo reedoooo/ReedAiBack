@@ -1,10 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
-const path = require('path');
 require('dotenv').config();
-const { User, Folder } = require('@/models');
-const passport = require('passport');
+const { Folder, Prompt, Tool, File, User } = require('@/models');
 const {
   createWorkspace,
   createFolders,
@@ -18,6 +16,11 @@ const {
   createModel,
 } = require('@/db/init'); // Adjust the path as needed
 const { logger } = require('@/config/logging');
+const AuthorizationError = require('@/config/constants/errors/AuthorizationError');
+const { getBucket, updateRelatedDocuments, getGFS } = require('@/db');
+const mongoose = require('mongoose');
+const crypto = require('crypto');
+const path = require('path');
 const defaultUserData = {
   username: '',
   email: '',
@@ -140,16 +143,119 @@ const defaultUserData = {
   tools: [],
   presets: [],
 };
+const createDefaultFile = async (user, folder, options = {}) => {
+  const bucket = getGFS();
+  const fileData = options.content || 'This is the default content for the file.';
+  const fileName = options.fileName || `default_${Date.now()}${options.extension || '.txt'}`;
+
+  return new Promise((resolve, reject) => {
+    const writestream = bucket.openUploadStream(fileName, {
+      contentType: options.mimeType || 'text/plain',
+      metadata: {
+        originalName: fileName,
+        uploadDate: new Date(),
+        workspaceId: folder.workspaceId.toString(),
+        userId: user._id.toString(),
+        folderId: folder._id.toString(),
+        space: folder.type,
+      },
+    });
+
+    writestream.write(fileData);
+    writestream.end();
+
+    writestream.on('finish', async function (gridFsFile) {
+      if (!gridFsFile || !gridFsFile._id) {
+        return reject(new Error('Failed to create GridFS file'));
+      }
+
+      try {
+        const newFile = new File({
+          userId: user._id,
+          workspaceId: folder.workspaceId,
+          folderId: folder._id,
+          name: fileName,
+          size: Buffer.byteLength(fileData),
+          filePath: `/uploads/${gridFsFile._id}`,
+          type: path.extname(fileName).slice(1),
+          mimeType: options.mimeType || 'text/plain',
+          space: folder.type,
+          gridFsId: gridFsFile._id,
+        });
+
+        await newFile.save();
+        await updateRelatedDocuments(newFile);
+
+        logger.info(`Default file created: ${newFile._id}`);
+        resolve({
+          mongoDocument: newFile,
+          gridFsFile: {
+            _id: gridFsFile._id,
+            filename: gridFsFile.filename,
+          },
+        });
+      } catch (error) {
+        logger.error(`Error saving default file document: ${error.message}`);
+        reject(error);
+      }
+    });
+
+    writestream.on('error', function (error) {
+      logger.error(`Error in GridFS stream: ${error.message}`);
+      reject(error);
+    });
+  });
+};
+
+// const createDefaultTxtFile = async (user, folder) => {
+//   const fileData = 'This is the default content for the text file.';
+//   const newFile = new File({
+//     userId: user._id,
+//     workspaceId: folder.workspaceId, // Assuming the folder has workspaceId
+//     folderId: folder._id,
+//     name: 'default.txt',
+//     size: Buffer.byteLength(fileData),
+//     filePath: `/default_files/${folder._id}/default.txt`, // Adjust the path based on your setup
+//     data: Buffer.from(fileData),
+//     type: 'txt',
+//     mimeType: 'text/plain',
+//     space: folder.type, // Using the folder type as the file space
+//   });
+
+//   await newFile.save();
+//   return newFile;
+// };
+
 const checkDuplicate = async (Model, query) => {
   const existingItem = await Model.findOne(query);
   return existingItem ? existingItem : null;
 };
+// Token generation function
 const generateTokens = user => {
-  // const payload = { userId: user._id };
-  const expiresIn = 60 * 60 * 24; // 24 hours
-  const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_ACCESS_SECRET, { expiresIn });
-  const refreshToken = jwt.sign({ userId: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn });
-  return { accessToken, refreshToken, expiresIn };
+  const accessToken = jwt.sign(
+    { userId: user._id },
+    process.env.AUTH_ACCESS_TOKEN_SECRET,
+    { expiresIn: '1h' } // Access token expires in 1 hour
+  );
+  const refreshToken = jwt.sign(
+    { userId: user._id },
+    process.env.AUTH_REFRESH_TOKEN_SECRET,
+    { expiresIn: '7d' } // Refresh token expires in 7 days
+  );
+  return { accessToken, refreshToken };
+};
+// Top-level constants
+const REFRESH_TOKEN = {
+  secret: process.env.AUTH_REFRESH_TOKEN_SECRET,
+  cookie: {
+    name: 'refreshTkn',
+    options: {
+      sameSite: 'None',
+      secure: true,
+      httpOnly: true,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+  },
 };
 const registerUser = async (req, res) => {
   try {
@@ -172,56 +278,88 @@ const registerUser = async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
-    const user = new User({
+    const newUser = new User({
       ...defaultUserData,
       username,
       email,
       'auth.password': passwordHash,
     });
-    await user.save();
+    await newUser.save();
+    const { accessToken, refreshToken } = generateTokens(newUser);
 
+    // SET refresh Token cookie in response
+    res.cookie(REFRESH_TOKEN.cookie.name, refreshToken, REFRESH_TOKEN.cookie.options);
     // Initialize user data
-    const workspace = await createWorkspace(user);
-    const folders = await createFolders(user, workspace);
+    const workspace = await createWorkspace(newUser);
+    const folders = await createFolders(newUser, workspace);
 
+    // Create default files in each folder
+    for (const folder of folders) {
+      try {
+        const { mongoDocument: defaultFile, gridFsFile } = await createDefaultFile(newUser, folder, {
+          fileName: `default_${folder.type}.txt`,
+          content: `This is the default content for ${folder.type} folder.`,
+          mimeType: 'text/plain',
+        });
+
+        if (!defaultFile || !gridFsFile) {
+          throw new Error('Failed to create default file');
+        }
+
+        folder.items.push(defaultFile._id);
+        folder.files.push(defaultFile._id);
+        newUser.files.push(defaultFile._id);
+      } catch (error) {
+        logger.error(`Error creating default file for folder ${folder.type}: ${error.message}`);
+        // Continue with the next folder instead of stopping the whole registration process
+        continue;
+      }
+    }
+    // for (const folder of folders) {
+    //   const defaultFile = await createDefaultTxtFile(newUser, folder);
+    //   folder.items.push(defaultFile._id); // Ensure the default file is added to the folder's items
+    //   folder.files.push(defaultFile._id); // Ensure the default file is added to the user's files
+    //   newUser.files.push(defaultFile._id); // Ensure the default file is added to the user's files
+    // }
     // Create items and associate them with folders
     const file = await createFile(
-      user,
+      newUser,
       folders.find(folder => folder.type === 'files')
     );
     const preset = await createPreset(
-      user,
+      newUser,
       folders.find(folder => folder.type === 'presets')
     );
     const assistant = await createAssistant(
-      user,
+      newUser,
       folders.find(folder => folder.type === 'assistants'),
       file
     );
     const chatSession = await createChatSession(
-      user,
+      newUser,
       workspace,
       assistant,
       folders.find(folder => folder.type === 'chatSessions')
     );
     const prompt = await createPrompt(
-      user,
+      newUser,
+      workspace,
       folders.find(folder => folder.type === 'prompts')
     );
     const collection = await createCollection(
-      user,
+      newUser,
       folders.find(folder => folder.type === 'collections')
     );
     const tool = await createTool(
-      user,
+      newUser,
+      workspace,
       folders.find(folder => folder.type === 'tools')
     );
     const model = await createModel(
-      user,
+      newUser,
       folders.find(folder => folder.type === 'models')
     );
 
-    // Push items into their respective folders
     folders.find(folder => folder.type === 'files').items.push(file._id);
     folders.find(folder => folder.type === 'presets').items.push(preset._id);
     folders.find(folder => folder.type === 'assistants').items.push(assistant._id);
@@ -248,100 +386,56 @@ const registerUser = async (req, res) => {
     await workspace.save();
 
     // Push workspace ID to user
-    user.workspaces = user.workspaces.includes(workspace._id) ? user.workspaces : [...user.workspaces, workspace._id];
-    user.userId = user._id;
-
-    await user.save();
-    logger.info(`User registered: ${user.username}`);
-
-    const { accessToken, refreshToken, expiresIn } = generateTokens(user);
-    const populatedUser = await User.findById(user._id).populate([
-      'workspaces',
-      'assistants',
-      'prompts',
-      'chatSessions',
-      'folders',
-      'files',
-      'collections',
-      'models',
-      'tools',
-      'presets',
-    ]);
-
-    res.status(201).json({
+    newUser.workspaces = newUser.workspaces.includes(workspace._id)
+      ? newUser.workspaces
+      : [...newUser.workspaces, workspace._id];
+    newUser.userId = newUser._id;
+    newUser.authSession = {
       accessToken,
       refreshToken,
-      expiresIn,
-      userId: user._id,
-      message: 'User registered successfully',
-      user: populatedUser,
-    });
-  } catch (error) {
-    logger.error(`Error registering user: ${error.message}`);
-    logger.error(`Error Stack: ${error.stack}`);
-    logger.error(`Error Name: ${error.name}`);
-
-    if (error.code === 11000) {
-      if (error.message.includes('chatsessions index: sessionId_1 dup key')) {
-        throw new Error('Error creating chat session. Please try again.');
-      } else if (error.message.includes('username') || error.message.includes('email')) {
-        throw new Error('Username or email already exists');
-      }
-    } else if (error.message.includes('All fields (username, email, password) are required')) {
-      throw new Error('All fields (username, email, password) are required');
-    } else if (error.message.includes('Password must be at least 6 characters long')) {
-      throw new Error('Password must be at least 6 characters long');
-    } else {
-      throw new Error('An error occurred while registering the user');
-    }
-  }
-};
-const loginUser = async (req, res, next) => {
-  try {
-    const { usernameOrEmail, password } = req.body;
-    const query = usernameOrEmail.includes('@') ? { email: usernameOrEmail } : { username: usernameOrEmail };
-    let user = await User.findOne(query);
-    if (!user) {
-      throw new Error('User not found');
-    }
-    logger.info(`User found: ${user.email}`);
-    logger.info(`Input password ${password}`);
-    logger.info(`User password ${user.auth.password}`);
-    const passwordMatch = await bcrypt.compare(password, user.auth.password);
-    if (!passwordMatch) {
-      throw new Error('Invalid password');
-    }
-
-    const expiresIn = 60 * 60 * 2; // 2 hours
-    const accessToken = jwt.sign(
-      {
-        userId: user._id,
-        username: user.username,
-        email: user.email,
-      },
-      process.env.JWT_ACCESS_SECRET,
-      { expiresIn }
-    );
-    const refreshToken = jwt.sign(
-      {
-        userId: user._id,
-      },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn }
-    );
-    user.authSession = {
-      token: accessToken,
-      tokenType: 'Bearer',
-      accessToken,
-      refreshToken,
-      expiresIn,
-      expiresAt: Date.now() + expiresIn * 1000,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
       createdAt: new Date(),
     };
+    // newUser.authSession = {
+    //   token: aTkn,
+    //   tokenType: 'Bearer',
+    //   accessToken: aTkn,
+    //   refreshToken: refreshToken,
+    //   expiresIn: 60 * 60 * 24, // 24 hours
+    //   expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+    //   createdAt: new Date(),
+    // };
+    const openai = {
+      apiKey: process.env.OPENAI_API_PROJECT_KEY,
+      organizationId: process.env.OPENAI_API_ORG_ID,
+      apiVersion: '',
+      projects: [
+        {
+          name: process.env.OPENAI_API_PROJECT_NAME,
+          id: process.env.OPENAI_API_PROJECT_ID,
+          organizationId: process.env.OPENAI_API_ORG_ID,
+          organizationName: process.env.OPENAI_API_ORG_NAME,
+          apiKey: process.env.OPENAI_API_PROJECT_KEY,
+          apiVersion: '',
+          default: true,
+          users: [
+            {
+              userId: newUser._id,
+              role: 'admin',
+              readWrite: true,
+            },
+          ],
+        },
+      ],
+    };
 
-    await user.save();
-    logger.info(`User logged in: ${user.email}`);
-    const populatedUser = await User.findById(user._id).populate([
+    newUser.profile.openai = openai;
+    newUser.openai = openai;
+
+    await newUser.save();
+    logger.info(`User registered: ${newUser.username}`);
+
+    const populatedUser = await User.findById(newUser._id).populate([
       'workspaces',
       {
         path: 'workspaces',
@@ -357,6 +451,18 @@ const loginUser = async (req, res, next) => {
           path: 'files',
           model: 'File', // Replace 'Message' with the actual name of your Message model
         },
+        populate: {
+          path: 'assistants',
+          model: 'Assistant', // Replace 'Message' with the actual name of your Message model
+        },
+        populate: {
+          path: 'prompts',
+          model: 'Prompt', // Replace 'Message' with the actual name of your Message model
+        },
+        populate: {
+          path: 'tools',
+          model: 'Tool', // Replace 'Message' with the actual name of your Message model
+        },
       },
       'assistants',
       'prompts',
@@ -365,6 +471,127 @@ const loginUser = async (req, res, next) => {
         populate: {
           path: 'messages',
           model: 'ChatMessage', // Replace 'Message' with the actual name of your Message model
+        },
+      },
+      {
+        path: 'folders',
+        populate: {
+          path: 'files',
+          model: 'File', // Replace 'Message' with the actual name of your Message model
+        },
+        populate: [
+          {
+            path: 'items',
+            refPath: 'itemType',
+          },
+          {
+            path: 'subfolders',
+            model: 'Folder',
+            populate: {
+              path: 'items',
+              refPath: 'itemType',
+            },
+          },
+        ],
+      },
+      'files',
+      'collections',
+      'models',
+      'tools',
+      'presets',
+    ]);
+    res.status(201).json({
+      success: true,
+      accessToken,
+      refreshToken,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      userId: newUser._id,
+      message: 'User registered successfully',
+      user: populatedUser,
+    });
+  } catch (error) {
+    logger.error(`Error registering user: ${error.message}`);
+    logger.error(`Error Stack: ${error.stack}`);
+    logger.error(`Error Name: ${error.name}`);
+
+    if (error.code === 11000) {
+      if (error.message.includes('chatsessions index: sessionId_1 dup key')) {
+        throw new Error('Error creating chat session. Please try again.');
+      } else if (error.message.includes('username') || error.message.includes('email')) {
+        throw new Error('Username or email already exists');
+      }
+    } else if (error.message.includes('Failed to create default file')) {
+      res.status(500).json({ error: 'Failed to create default files. Please try again.' });
+    } else if (error.message.includes('All fields (username, email, password) are required')) {
+      throw new Error('All fields (username, email, password) are required');
+    } else if (error.message.includes('Password must be at least 6 characters long')) {
+      throw new Error('Password must be at least 6 characters long');
+    } else {
+      throw new Error('An error occurred while registering the user');
+    }
+    next(error);
+  }
+};
+const loginUser = async (req, res, next) => {
+  try {
+    const { usernameOrEmail, password } = req.body;
+    const query = usernameOrEmail.includes('@') ? { email: usernameOrEmail } : { username: usernameOrEmail };
+    let user = await User.findOne(query);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    logger.info(`User found: ${user.email}, Input password ${password}, User password ${user.auth.password}`);
+    const passwordMatch = await bcrypt.compare(password, user.auth.password);
+    if (!passwordMatch) {
+      throw new Error('Invalid password');
+    }
+    const { accessToken, refreshToken } = generateTokens(user);
+    // Update user with new tokens
+    user.authSession = {
+      accessToken,
+      refreshToken,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+      createdAt: new Date(),
+    };
+
+    await user.save();
+    logger.info(`User logged in: ${user.email}`);
+    const populatedUser = await User.findById(user._id).populate([
+      'workspaces',
+      {
+        path: 'workspaces',
+        populate: {
+          path: 'chatSessions',
+          model: 'ChatSession',
+        },
+        populate: {
+          path: 'folders',
+          model: 'Folder',
+        },
+        populate: {
+          path: 'files',
+          model: 'File',
+        },
+        populate: {
+          path: 'assistants',
+          model: 'Assistant',
+        },
+        populate: {
+          path: 'prompts',
+          model: 'Prompt',
+        },
+        populate: {
+          path: 'tools',
+          model: 'Tool',
+        },
+      },
+      'assistants',
+      'prompts',
+      {
+        path: 'chatSessions',
+        populate: {
+          path: 'messages',
+          model: 'ChatMessage',
         },
       },
       {
@@ -391,16 +618,18 @@ const loginUser = async (req, res, next) => {
       'presets',
     ]);
     res.status(200).json({
+      success: true,
       accessToken,
       refreshToken,
-      expiresIn,
+      expiresIn: 60 * 60 * 24, // 24 hours
       userId: user._id,
       message: 'Logged in successfully',
       user: populatedUser,
     });
   } catch (error) {
     logger.error(`Error logging in: ${error.message}`);
-    res.status(500).json({ message: 'Error logging in', error: error.message, stack: error.stack, status: error.name });
+    next(error);
+    // res.status(500).json({ message: 'Error logging in', error: error.message, stack: error.stack, status: error.name });
   }
 };
 const logoutUser = async (req, res) => {
@@ -433,6 +662,41 @@ const logoutUser = async (req, res) => {
     res.status(500).json({ message: 'Error logging out', error: error.message });
   }
 };
+const refreshAccessToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      throw new AuthorizationError('Refresh Token is missing');
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.AUTH_REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decoded.userId);
+
+    if (!user || user.authSession.refreshToken !== refreshToken) {
+      throw new AuthorizationError('Invalid refresh token');
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+
+    // Update user with new tokens
+    user.authSession = {
+      accessToken,
+      refreshToken: newRefreshToken,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+      createdAt: new Date(),
+    };
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    logger.error(`Error refreshing token: ${error.message}`);
+    res.status(401).json({ message: 'Invalid token', error: error.message });
+  }
+};
 const addApiKey = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -452,7 +716,7 @@ const validateToken = async (req, res) => {
       return res.status(401).send('No token provided');
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const decoded = jwt.verify(token, process.env.AUTH_REFRESH_TOKEN_SECRET);
     if (!decoded) {
       return res.status(401).send('Invalid token');
     }
@@ -502,7 +766,8 @@ const refreshToken = async (req, res) => {
       return res.status(401).json({ message: 'Refresh token is required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(token, process.env.AUTH_REFRESH_TOKEN_SECRET);
+    logger._constructLogger(decoded.userId, 'info', 'User refreshed their access token');
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({ message: 'Invalid token' });
@@ -525,4 +790,5 @@ module.exports = {
   updateUserProfile,
   refreshToken,
   addApiKey,
+  refreshAccessToken,
 };

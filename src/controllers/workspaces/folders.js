@@ -1,5 +1,60 @@
 const { Folder: WorkspaceFolder, User, Workspace } = require('@/models');
 
+/**
+ * Fetches all folders with a given space name.
+ * @async
+ * @function getFoldersBySpace
+ * @param {string} spaceName - The name of the space to filter folders by
+ * @param {Object} options - Additional options for pagination and sorting
+ * @param {number} [options.page=1] - The page number for pagination
+ * @param {number} [options.limit=10] - The number of folders per page
+ * @param {string} [options.sortBy='createdAt'] - The field to sort by
+ * @param {string} [options.sortOrder='desc'] - The sort order ('asc' or 'desc')
+ * @returns {Promise<Object>} An object containing the folders and pagination info
+ * @throws {Error} If there's an error fetching the folders
+ */
+const getFoldersBySpace = async (spaceName, options = {}) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = options;
+
+    const skip = (page - 1) * limit;
+    const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+    const query = { space: spaceName };
+
+    const [folders, total] = await Promise.all([
+      WorkspaceFolder.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name email')
+        .populate('workspaceId', 'name')
+        .lean(),
+        WorkspaceFolder.countDocuments(query)
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      folders,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalFolders: total,
+        foldersPerPage: limit
+      }
+    };
+  } catch (error) {
+    console.error(`Error fetching folders by space: ${error.message}`);
+    throw new Error('Failed to fetch folders');
+  }
+};
+
 const getWorkspaceFoldersByWorkspaceId = async (req, res) => {
   try {
     const workspaceFolder = await WorkspaceFolder.findById(req.params.id).populate('items'); {
@@ -99,4 +154,5 @@ module.exports = {
   createFolder,
   updateFolder,
   deleteFolder,
+  getFoldersBySpace,
 };

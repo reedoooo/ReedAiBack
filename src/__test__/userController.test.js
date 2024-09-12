@@ -1,8 +1,8 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const userController = require('../controllers').user
-const userService = require('../controllers').services;
+const userController = require('../config/env/controllers').user;
+const userService = require('../config/env/controllers').services;
 const { User, Workspace, Chat, ChatSession, Message } = require('../models');
 const app = require('../app');
 

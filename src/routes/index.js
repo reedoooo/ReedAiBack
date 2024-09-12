@@ -1,6 +1,5 @@
 // routes/index.js
 const {
-  // chatAssistantRoutes,
   chatRoutes,
   chatAttachmentRoutes,
 } = require('./chat-sessions');

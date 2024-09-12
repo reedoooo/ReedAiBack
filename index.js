@@ -1,15 +1,16 @@
 require('dotenv').config();
 require('module-alias/register');
 
+const { connectDB } = require('@/db/main');
 const app = require('./src/app');
-const { logger } = require('./src/config/logging');
-const { connectDB } = require('./src/db');
+const config = require('@/config');
+const { logger } = require('@/config/logging');
 
 async function main() {
   try {
     await connectDB();
     if (process.env.NODE_ENV !== 'test') {
-      const PORT = process.env.PORT || 3001;
+      const PORT = config.api.port;
       app.listen(PORT, () => logger.info(`Server Open & Connected To Database 🤟: ${PORT}`));
     }
   } catch (error) {

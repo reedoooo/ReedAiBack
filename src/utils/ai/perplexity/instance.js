@@ -1,11 +1,10 @@
-const { OpenAIEmbeddings } = require('langchain/embeddings/openai');
 const { MongoDBAtlasVectorSearch } = require('@langchain/mongodb');
 const { MongoClient } = require('mongodb');
-const { ChatPerplexity } = require('langchain_community/chat_models/perplexity');
 const { RetrievalQAChain } = require('langchain/chains');
 const { PromptTemplate } = require('@langchain/core/prompts');
 const { StringOutputParser } = require('@langchain/core/output_parsers');
 const { Document } = require('langchain/document');
+const { OpenAIEmbeddings } = require('@langchain/openai');
 
 // Initialize OpenAI embeddings
 const embedding_model = new OpenAIEmbeddings({

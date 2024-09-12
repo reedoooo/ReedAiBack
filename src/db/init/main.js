@@ -12,7 +12,6 @@ const {
   Preset,
   Assistant,
   Tool,
-  JwtSecret,
 } = require('@/models'); // Adjust the path as needed
 const { uniqueId } = require('lodash');
 const createWorkspace = async user => {
@@ -56,10 +55,9 @@ const createFolders = async (user, workspace) => {
     'assistants',
     'files',
     'models',
-    'tool',
     'tools',
-    'presets',
     'prompts',
+    'presets',
     'collections',
   ];
 
@@ -81,6 +79,7 @@ const createFolders = async (user, workspace) => {
       name: uniqueName,
       description: `${type} folder`, // Default description, can be customized
       type: type,
+      space: type,
       items: [],
     };
 
@@ -128,7 +127,7 @@ const createChatSession = async (user, workspace, assistant, folder) => {
     userId: user._id,
     workspaceId: workspace._id,
     assistantId: assistant._id,
-    folder: folder._id,
+    folderId: folder._id,
     model: 'gpt-4-turbo-preview',
     prompt: "Let's start our first conversation.",
     active: true,
@@ -209,9 +208,10 @@ const createAssistant = async (user, folder, file) => {
   return assistant;
 };
 
-const createPrompt = async (user, folder) => {
+const createPrompt = async (user, workspace, folder) => {
   const promptData = {
     userId: user._id,
+    workspaceId: workspace._id,
     folderId: folder._id,
     content: 'You are a helpful assistant. How can I assist you today?',
     name: 'Default Prompt',
@@ -237,9 +237,10 @@ const createCollection = async (user, folder) => {
   return collection;
 };
 
-const createTool = async (user, folder) => {
+const createTool = async (user, workspace, folder) => {
   const toolData = {
     userId: user._id,
+    workspaceId: workspace._id,
     folderId: folder._id,
     description: 'This is the default tool',
     name: 'Default Tool',

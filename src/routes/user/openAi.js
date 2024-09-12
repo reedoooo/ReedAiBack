@@ -1,7 +1,7 @@
 // routes/user/openAi.js
 const express = require('express');
 const router = express.Router();
-const openAiController = require('../../controllers/user');
+const openAiController = require('../../config/env/controllers/user');
 
 // --- User routes ---
 router.get('/openAi', openAiController.listUsers);

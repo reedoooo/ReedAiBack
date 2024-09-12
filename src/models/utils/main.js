@@ -1,5 +1,5 @@
-const { getMainSystemMessageContent } = require('@/lib/prompts/createPrompt.js');
 const { logger } = require('@/config/logging/logger.js');
+const { getMainSystemMessageContent } = require('@/lib/prompts/createPrompt');
 const { Message, ChatSession, Workspace, User } = require('@/models');
 
 const createMessage = async (sessionId, role, content, userId, sequenceNumber) => {
