@@ -10,7 +10,7 @@ const {
   Message: ChatMessage,
   ChatSession,
 } = require('@/models');
-const { connectDB, getDB, getGFS, disconnectDB, uploadToGridFS, getBucket } = require('@/db');
+const { connectDB, getDB, getGFS, disconnectDB, getBucket } = require('@/db');
 const fs = require('fs').promises;
 const path = require('path');
 const { asyncHandler } = require('@/utils/api');

@@ -45,7 +45,7 @@ const {
 } = require('@/controllers');
 const { asyncHandler } = require('@/utils/api');
 const { logger } = require('@/config/logging');
-const { upload, handleUploadError, getGFS } = require('@/db');
+const { upload, handleUploadError, getGFS, getDB, getBucket } = require('@/db');
 const { default: mongoose } = require('mongoose');
 const { Workspace, Folder, User } = require('@/models');
 // const { upload } = require('@/middlewares/upload');
@@ -70,7 +70,19 @@ const handleFileUpload = asyncHandler(async (req, res) => {
       workspaceId = workspaceId.replace(/^"|"$/g, '');
       userId = userId.replace(/^"|"$/g, '');
       folderId = folderId === 'undefined' ? undefined : folderId.replace(/^"|"$/g, '');
+      // Create a new File document
+      // const newFile = new File({
+      //   filename: req.file.filename,
+      //   originalName: req.file.originalname,
+      //   contentType: req.file.contentType,
+      //   size: req.file.size,
+      //   uploadDate: new Date(),
+      //   user: userId,
+      //   workspace: workspaceId,
+      //   folder: folderId,
+      // });
 
+      // await newFile.save();
       logger.info(`Attempting to associate file with Workspace: ${workspaceId}, User: ${userId}, Folder: ${folderId}`);
 
       // Update Workspace, Folder, and User models
@@ -137,18 +149,19 @@ const handleFileUpload = asyncHandler(async (req, res) => {
 });
 const getStorageFiles = asyncHandler(async (req, res) => {
   try {
+    logger.info('Fetching files from storage', { bucketName: 'uploads' });
     const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
       bucketName: 'uploads',
     });
-
+    logger.info('Fetching files from storage', { bucketName: 'uploads' });
     const files = await bucket.find().toArray();
-
+    logger.info(`Fetched ${files.length} files from storage`, { bucketName: 'uploads' });
     const fileList = await Promise.all(
       files.map(async file => {
         const workspace = await Workspace.findOne({ files: file._id });
         const folder = await Folder.findOne({ files: file._id });
         const user = await User.findOne({ files: file._id });
-
+        logger.info('File details:', file);
         return {
           id: file._id.toString(),
           filename: file.filename,
@@ -161,7 +174,7 @@ const getStorageFiles = asyncHandler(async (req, res) => {
         };
       })
     );
-
+    logger.info('File list:', fileList);
     res.json(fileList);
   } catch (error) {
     logger.error('Error fetching files from storage:', error);
@@ -169,7 +182,7 @@ const getStorageFiles = asyncHandler(async (req, res) => {
   }
 });
 // File retrieval routes
-router.get('/', asyncHandler(getAllFiles));
+// router.get('/', asyncHandler(getAllFiles));
 router.get('/type/:type', asyncHandler(getAllFilesByType));
 router.get('/:id', asyncHandler(getFileById));
 router.get('/name/:name', asyncHandler(getFileByName));
@@ -184,11 +197,177 @@ router.post('/assistant', asyncHandler(createAssistantFile));
 router.post('/message', asyncHandler(createMessageFileItems));
 router.put('/:id', asyncHandler(updateFile));
 
+// File upload routes
 router.post('/upload', handleFileUpload);
-router.get('/storage', getStorageFiles);
-router.get('/storage/type/:type', asyncHandler(getStoredFilesByType));
-router.get('/storage/space/:space', asyncHandler(getStoredFilesBySpace));
-router.get('/storage/filename/:filename', asyncHandler(getStoredFileByName));
+router.get('/', async (req, res) => {
+  try {
+    const db = await getDB();
+    const bucket = getBucket();
+    const collection = db.collection('uploads.files');
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const files = await collection.find({}).skip(skip).limit(limit).toArray();
+    const total = await collection.countDocuments();
+
+    if (!files || files.length === 0) {
+      return res.json({ files: [], total: 0, page, limit });
+    }
+
+    const fileList = files.map(file => ({
+      id: file._id.toString(),
+      _id: file._id.toString(),
+      workspaceId: file.metadata.workspaceId,
+      folderId: file.metadata.folderId,
+      filename: file.filename,
+      contentType: file.contentType,
+      size: file.length,
+      uploadDate: file.uploadDate,
+      metadata: file.metadata,
+      url: `/api/files/${file._id}/download`,
+    }));
+
+    return res.json({
+      message: 'Files fetched successfully',
+      files: fileList,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    logger.error(`Error fetching files: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching files', message: error.message });
+  }
+});
+router.get('/type/:fileType', async (req, res) => {
+  try {
+    const db = await getDB();
+    const bucket = getBucket();
+    const collection = db.collection('uploads.files');
+
+    const fileType = req.params.fileType;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { contentType: new RegExp(fileType, 'i') };
+    const files = await collection.find(query).skip(skip).limit(limit).toArray();
+    const total = await collection.countDocuments(query);
+
+    if (!files || files.length === 0) {
+      return res.json({ files: [], total: 0, page, limit });
+    }
+
+    const fileList = files.map(file => ({
+      id: file._id.toString(),
+      filename: file.filename,
+      contentType: file.contentType,
+      size: file.length,
+      uploadDate: file.uploadDate,
+      metadata: file.metadata,
+      url: `/api/files/${file._id}/download`,
+    }));
+
+    return res.json({
+      message: `Files of type ${fileType} fetched successfully`,
+      files: fileList,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    logger.error(`Error fetching files by type: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching files by type', message: error.message });
+  }
+});
+router.get('/name/:fileName', async (req, res) => {
+  try {
+    const db = await getDB();
+    const bucket = getBucket();
+    const collection = db.collection('uploads.files');
+
+    const fileName = req.params.fileName;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { "filename": new RegExp(fileName, 'i') };
+    const files = await collection.find(query).skip(skip).limit(limit).toArray();
+    const total = await collection.countDocuments(query);
+
+    if (!files || files.length === 0) {
+      return res.json({ files: [], total: 0, page, limit });
+    }
+
+    const fileList = files.map(file => ({
+      id: file._id.toString(),
+      filename: file.filename,
+      contentType: file.contentType,
+      size: file.length,
+      uploadDate: file.uploadDate,
+      metadata: file.metadata,
+      url: `/api/files/${file._id}/download`,
+    }));
+
+    return res.json({
+      message: `Files with name containing '${fileName}' fetched successfully`,
+      files: fileList,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    logger.error(`Error fetching files by name: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching files by name', message: error.message });
+  }
+});
+router.get('/space/:space', async (req, res) => {
+  try {
+    const db = await getDB();
+    const bucket = getBucket();
+    const collection = db.collection('uploads.files');
+
+    const space = req.params.space;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { "metadata.space": space };
+    const files = await collection.find(query).skip(skip).limit(limit).toArray();
+    const total = await collection.countDocuments(query);
+
+    if (!files || files.length === 0) {
+      return res.json({ files: [], total: 0, page, limit });
+    }
+
+    const fileList = files.map(file => ({
+      id: file._id.toString(),
+      filename: file.filename,
+      contentType: file.contentType,
+      size: file.length,
+      uploadDate: file.uploadDate,
+      metadata: file.metadata,
+      url: `/api/files/${file._id}/download`,
+    }));
+
+    return res.json({
+      message: `Files in space '${space}' fetched successfully`,
+      files: fileList,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    logger.error(`Error fetching files by space: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching files by space', message: error.message });
+  }
+});
 
 // Message routes
 router.get('/messages/session/:sessionId', asyncHandler(getMessagesByChatSessionId));

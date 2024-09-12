@@ -19,3 +19,4 @@ package-lock.json
 .github/workflows
 .github
 .github/workflow
+scripts/conversations.json

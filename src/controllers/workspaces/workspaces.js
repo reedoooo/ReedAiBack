@@ -20,6 +20,62 @@ const getAllUserWorkspaces = async (req, res) => {
   }
 };
 
+async function fetchWorkspaceAndFolders(workspaceId, space) {
+  try {
+    // Validate the workspaceId
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      throw new Error('Invalid workspace ID');
+    }
+
+    // Fetch workspace and folders concurrently
+    const [workspace, folders] = await Promise.all([
+      Workspace.findById(workspaceId).lean(),
+      Folder.find({ workspaceId, space }).lean(),
+    ]);
+
+    // Check if workspace exists
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+
+    // Organize folders into a tree structure if needed
+    const folderTree = organizeFoldersIntoTree(folders);
+
+    return {
+      workspace,
+      folders: folderTree,
+    };
+  } catch (error) {
+    console.error('Error fetching workspace and folders:', error);
+    throw error;
+  }
+}
+// Helper function to organize folders into a tree structure
+function organizeFoldersIntoTree(folders) {
+  const folderMap = {};
+  const rootFolders = [];
+
+  // First pass: create a map of all folders
+  folders.forEach(folder => {
+    folderMap[folder._id.toString()] = { ...folder, children: [] };
+  });
+
+  // Second pass: build the tree structure
+  folders.forEach(folder => {
+    if (folder.parent) {
+      const parentFolder = folderMap[folder.parent.toString()];
+      if (parentFolder) {
+        parentFolder.children.push(folderMap[folder._id.toString()]);
+      } else {
+        rootFolders.push(folderMap[folder._id.toString()]);
+      }
+    } else {
+      rootFolders.push(folderMap[folder._id.toString()]);
+    }
+  });
+
+  return rootFolders;
+}
 const getHomeWorkspace = async (req, res) => {
   const userId = req.params.userId;
   try {
@@ -175,4 +231,7 @@ module.exports = {
   createWorkspace,
   updateWorkspace,
   deleteWorkspace,
+  getHomeWorkspace,
+  fetchWorkspaceAndFolders,
+  organizeFoldersIntoTree,
 };

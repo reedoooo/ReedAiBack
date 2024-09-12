@@ -7,6 +7,7 @@ const { Schema } = mongoose;
 const path = require('path');
 const profileImagePath = path.join(__dirname, '../../../public/files/avatar1.png');
 const passportLocalMongoose = require('passport-local-mongoose');
+const { logger } = require('@/config/logging');
 
 // Pull in Environment variables
 const ACCESS_TOKEN = {
@@ -237,6 +238,7 @@ userSchema.plugin(passportLocalMongoose);
 3. ATTACH MIDDLEWARE
  */
 userSchema.pre('save', async function (next) {
+  logger.info('User pre-save middleware');
   try {
     if (this.isModified('password')) {
       const salt = await bcrypt.genSalt(10);

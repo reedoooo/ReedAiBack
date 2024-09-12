@@ -53,12 +53,8 @@ const storage = new GridFsStorage({
           logger.error(`Error generating filename: ${err.message}`);
           return reject(err);
         }
-        const filename = file.originalname;
-        logger.info(`Processing file: ${file.originalname}`);
-        logger.info(`Processing file: ${JSON.stringify(file)}`);
-
+        const filename = `${buf.toString('hex')}${path.extname(file.originalname)}`;
         const fileInfo = {
-          id: new mongoose.Types.ObjectId(),
           filename: filename,
           bucketName: 'uploads',
           metadata: {
@@ -70,59 +66,92 @@ const storage = new GridFsStorage({
             space: req.body.space,
           },
         };
-        logger.info(`File info created: ${JSON.stringify(fileInfo)}`);
-
         resolve(fileInfo);
       });
     });
   },
-  onFileUploadComplete: async file => {
-    try {
-      const { workspaceId, userId, folderId } = file.metadata;
-
-      // Update Workspace
-      const updatedWorkspace = await Workspace.findByIdAndUpdate(
-        workspaceId,
-        { $push: { files: file._id } },
-        { new: true, useFindAndModify: false }
-      );
-      if (updatedWorkspace) {
-        logger.info(`File ${file._id} associated with Workspace ${workspaceId}`);
-      } else {
-        logger.warn(`Workspace ${workspaceId} not found when associating file ${file._id}`);
-      }
-
-      // Update Folder
-      const updatedFolder = await Folder.findByIdAndUpdate(
-        folderId,
-        { $push: { files: file._id } },
-        { new: true, useFindAndModify: false }
-      );
-      if (updatedFolder) {
-        logger.info(`File ${file._id} associated with Folder ${folderId}`);
-      } else {
-        logger.warn(`Folder ${folderId} not found when associating file ${file._id}`);
-      }
-
-      // Update User
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { $push: { files: file._id } },
-        { new: true, useFindAndModify: false }
-      );
-      if (updatedUser) {
-        logger.info(`File ${file._id} associated with User ${userId}`);
-      } else {
-        logger.warn(`User ${userId} not found when associating file ${file._id}`);
-      }
-
-      logger.info(`File ${file._id} association process completed`);
-    } catch (error) {
-      logger.error(`Error associating file: ${error.message}`);
-      logger.error(`Stack trace: ${error.stack}`);
-    }
-  },
 });
+// const storage = new GridFsStorage({
+//   url: process.env.MONGODB_URI || getEnv('MONGODB_URI'),
+//   file: (req, file) => {
+//     return new Promise((resolve, reject) => {
+//       crypto.randomBytes(16, (err, buf) => {
+//         if (err) {
+//           logger.error(`Error generating filename: ${err.message}`);
+//           return reject(err);
+//         }
+//         const filename = file.originalname;
+//         logger.info(`Processing file: ${file.originalname}`);
+//         logger.info(`Processing file: ${JSON.stringify(file)}`);
+
+//         const fileInfo = {
+//           id: new mongoose.Types.ObjectId(),
+//           filename: filename,
+//           bucketName: 'uploads',
+//           metadata: {
+//             originalName: file.originalname,
+//             uploadDate: new Date(),
+//             workspaceId: req.body.workspaceId,
+//             userId: req.body.userId,
+//             folderId: req.body.folderId,
+//             space: req.body.space,
+//           },
+//         };
+//         const newFile = new mongoose.model('File', fileInfo);
+//         logger.info(`File info created: ${JSON.stringify(newFile)}`);
+
+//         // Save file info to the database
+//         resolve(newFile);
+//       });
+//     });
+//   },
+//   onFileUploadComplete: async file => {
+//     try {
+//       const { workspaceId, userId, folderId } = file.metadata;
+
+//       // Update Workspace
+//       const updatedWorkspace = await Workspace.findByIdAndUpdate(
+//         workspaceId,
+//         { $push: { files: file._id } },
+//         { new: true, useFindAndModify: false }
+//       );
+//       if (updatedWorkspace) {
+//         logger.info(`File ${file._id} associated with Workspace ${workspaceId}`);
+//       } else {
+//         logger.warn(`Workspace ${workspaceId} not found when associating file ${file._id}`);
+//       }
+
+//       // Update Folder
+//       const updatedFolder = await Folder.findByIdAndUpdate(
+//         folderId,
+//         { $push: { files: file._id } },
+//         { new: true, useFindAndModify: false }
+//       );
+//       if (updatedFolder) {
+//         logger.info(`File ${file._id} associated with Folder ${folderId}`);
+//       } else {
+//         logger.warn(`Folder ${folderId} not found when associating file ${file._id}`);
+//       }
+
+//       // Update User
+//       const updatedUser = await User.findByIdAndUpdate(
+//         userId,
+//         { $push: { files: file._id } },
+//         { new: true, useFindAndModify: false }
+//       );
+//       if (updatedUser) {
+//         logger.info(`File ${file._id} associated with User ${userId}`);
+//       } else {
+//         logger.warn(`User ${userId} not found when associating file ${file._id}`);
+//       }
+
+//       logger.info(`File ${file._id} association process completed`);
+//     } catch (error) {
+//       logger.error(`Error associating file: ${error.message}`);
+//       logger.error(`Stack trace: ${error.stack}`);
+//     }
+//   },
+// });
 // Add this to see more detailed logs from GridFsStorage
 storage.on('connection', db => {
   logger.info('GridFsStorage connected to database');
@@ -139,6 +168,81 @@ storage.on('file', file => {
 storage.on('streamError', (error, conf) => {
   logger.error(`Error in GridFS stream: ${error.message}`);
 });
+
+const generalStorageFunction = async (fileData, options) => {
+  return new Promise((resolve, reject) => {
+    const writestream = bucket.openUploadStream(options.filename, {
+      contentType: options.mimeType,
+      metadata: options.metadata,
+    });
+
+    writestream.write(fileData);
+    writestream.end();
+
+    writestream.on('finish', async function (gridFsFile) {
+      try {
+        // Create a new File document
+        const newFile = new File({
+          userId: options.metadata.userId,
+          workspaceId: options.metadata.workspaceId,
+          folderId: options.metadata.folderId,
+          name: options.metadata.originalName,
+          size: Buffer.byteLength(fileData),
+          filePath: `/uploads/${gridFsFile._id}`,
+          type: path.extname(options.filename).slice(1),
+          mimeType: options.mimeType,
+          space: options.metadata.space,
+          gridFsId: gridFsFile._id,
+        });
+
+        await newFile.save();
+
+        // Update related documents
+        await updateRelatedDocuments(newFile);
+
+        resolve({
+          mongoDocument: newFile,
+          gridFsFile: {
+            _id: gridFsFile._id,
+            filename: gridFsFile.filename,
+          },
+        });
+      } catch (error) {
+        logger.error(`Error saving file document: ${error.message}`);
+        reject(error);
+      }
+    });
+
+    writestream.on('error', function (error) {
+      logger.error(`Error in GridFS stream: ${error.message}`);
+      reject(error);
+    });
+  });
+};
+
+const updateRelatedDocuments = async file => {
+  try {
+    // Update Workspace
+    await mongoose
+      .model('Workspace')
+      .findByIdAndUpdate(file.workspaceId, { $push: { files: file._id } }, { new: true, useFindAndModify: false });
+
+    // Update Folder
+    await mongoose
+      .model('Folder')
+      .findByIdAndUpdate(file.folderId, { $push: { files: file._id } }, { new: true, useFindAndModify: false });
+
+    // Update User
+    await mongoose
+      .model('User')
+      .findByIdAndUpdate(file.userId, { $push: { files: file._id } }, { new: true, useFindAndModify: false });
+
+    logger.info(`File ${file._id} association process completed`);
+  } catch (error) {
+    logger.error(`Error associating file: ${error.message}`);
+    throw error;
+  }
+};
 
 /**
  * Filters files based on allowed types.
@@ -198,31 +302,20 @@ const getDB = async () => {
   }
   return mongoose.connection;
 };
-
-/**
- * Gets the GridFS instance.
- * @function getGFS
- * @throws {Error} If GridFS is not initialized
- * @returns {Object} GridFS instance
- */
 const getGFS = () => {
   if (!gfs) {
     throw new Error('GridFS has not been initialized. Please connect to the database first.');
   }
   return gfs;
 };
-
-/**
- * Gets the GridFSBucket instance.
- * @function getBucket
- * @throws {Error} If GridFSBucket is not initialized
- * @returns {Object} GridFSBucket instance
- */
 const getBucket = () => {
   if (!bucket) {
     throw new Error('GridFS bucket has not been initialized. Please connect to the database first.');
   }
   return bucket;
+};
+const getStorage = () => {
+  return storage;
 };
 
 /**
@@ -287,4 +380,9 @@ module.exports = {
   handleUploadError,
   streamFile,
   deleteFile,
+  getStorage,
+  generalStorageFunction,
+  updateRelatedDocuments,
+  fileFilter,
 };
+

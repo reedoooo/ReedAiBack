@@ -17,6 +17,10 @@ const {
 } = require('@/db/init'); // Adjust the path as needed
 const { logger } = require('@/config/logging');
 const AuthorizationError = require('@/config/constants/errors/AuthorizationError');
+const { getBucket, updateRelatedDocuments, getGFS } = require('@/db');
+const mongoose = require('mongoose');
+const crypto = require('crypto');
+const path = require('path');
 const defaultUserData = {
   username: '',
   email: '',
@@ -139,25 +143,88 @@ const defaultUserData = {
   tools: [],
   presets: [],
 };
-// Function to create and save a default file in a folder
-const createDefaultTxtFile = async (user, folder) => {
-  const fileData = 'This is the default content for the text file.';
-  const newFile = new File({
-    userId: user._id,
-    workspaceId: folder.workspaceId, // Assuming the folder has workspaceId
-    folderId: folder._id,
-    name: 'default.txt',
-    size: Buffer.byteLength(fileData),
-    filePath: `/default_files/${folder._id}/default.txt`, // Adjust the path based on your setup
-    data: Buffer.from(fileData),
-    type: 'txt',
-    mimeType: 'text/plain',
-    space: folder.type, // Using the folder type as the file space
-  });
+const createDefaultFile = async (user, folder, options = {}) => {
+  const bucket = getGFS();
+  const fileData = options.content || 'This is the default content for the file.';
+  const fileName = options.fileName || `default_${Date.now()}${options.extension || '.txt'}`;
 
-  await newFile.save();
-  return newFile;
+  return new Promise((resolve, reject) => {
+    const writestream = bucket.openUploadStream(fileName, {
+      contentType: options.mimeType || 'text/plain',
+      metadata: {
+        originalName: fileName,
+        uploadDate: new Date(),
+        workspaceId: folder.workspaceId.toString(),
+        userId: user._id.toString(),
+        folderId: folder._id.toString(),
+        space: folder.type,
+      },
+    });
+
+    writestream.write(fileData);
+    writestream.end();
+
+    writestream.on('finish', async function (gridFsFile) {
+      if (!gridFsFile || !gridFsFile._id) {
+        return reject(new Error('Failed to create GridFS file'));
+      }
+
+      try {
+        const newFile = new File({
+          userId: user._id,
+          workspaceId: folder.workspaceId,
+          folderId: folder._id,
+          name: fileName,
+          size: Buffer.byteLength(fileData),
+          filePath: `/uploads/${gridFsFile._id}`,
+          type: path.extname(fileName).slice(1),
+          mimeType: options.mimeType || 'text/plain',
+          space: folder.type,
+          gridFsId: gridFsFile._id,
+        });
+
+        await newFile.save();
+        await updateRelatedDocuments(newFile);
+
+        logger.info(`Default file created: ${newFile._id}`);
+        resolve({
+          mongoDocument: newFile,
+          gridFsFile: {
+            _id: gridFsFile._id,
+            filename: gridFsFile.filename,
+          },
+        });
+      } catch (error) {
+        logger.error(`Error saving default file document: ${error.message}`);
+        reject(error);
+      }
+    });
+
+    writestream.on('error', function (error) {
+      logger.error(`Error in GridFS stream: ${error.message}`);
+      reject(error);
+    });
+  });
 };
+
+// const createDefaultTxtFile = async (user, folder) => {
+//   const fileData = 'This is the default content for the text file.';
+//   const newFile = new File({
+//     userId: user._id,
+//     workspaceId: folder.workspaceId, // Assuming the folder has workspaceId
+//     folderId: folder._id,
+//     name: 'default.txt',
+//     size: Buffer.byteLength(fileData),
+//     filePath: `/default_files/${folder._id}/default.txt`, // Adjust the path based on your setup
+//     data: Buffer.from(fileData),
+//     type: 'txt',
+//     mimeType: 'text/plain',
+//     space: folder.type, // Using the folder type as the file space
+//   });
+
+//   await newFile.save();
+//   return newFile;
+// };
 
 const checkDuplicate = async (Model, query) => {
   const existingItem = await Model.findOne(query);
@@ -226,13 +293,34 @@ const registerUser = async (req, res) => {
     const workspace = await createWorkspace(newUser);
     const folders = await createFolders(newUser, workspace);
 
-    // Create default text files in each folder
+    // Create default files in each folder
     for (const folder of folders) {
-      const defaultFile = await createDefaultTxtFile(newUser, folder);
-      folder.items.push(defaultFile._id); // Ensure the default file is added to the folder's items
-      folder.files.push(defaultFile._id); // Ensure the default file is added to the user's files
-      newUser.files.push(defaultFile._id); // Ensure the default file is added to the user's files
+      try {
+        const { mongoDocument: defaultFile, gridFsFile } = await createDefaultFile(newUser, folder, {
+          fileName: `default_${folder.type}.txt`,
+          content: `This is the default content for ${folder.type} folder.`,
+          mimeType: 'text/plain',
+        });
+
+        if (!defaultFile || !gridFsFile) {
+          throw new Error('Failed to create default file');
+        }
+
+        folder.items.push(defaultFile._id);
+        folder.files.push(defaultFile._id);
+        newUser.files.push(defaultFile._id);
+      } catch (error) {
+        logger.error(`Error creating default file for folder ${folder.type}: ${error.message}`);
+        // Continue with the next folder instead of stopping the whole registration process
+        continue;
+      }
     }
+    // for (const folder of folders) {
+    //   const defaultFile = await createDefaultTxtFile(newUser, folder);
+    //   folder.items.push(defaultFile._id); // Ensure the default file is added to the folder's items
+    //   folder.files.push(defaultFile._id); // Ensure the default file is added to the user's files
+    //   newUser.files.push(defaultFile._id); // Ensure the default file is added to the user's files
+    // }
     // Create items and associate them with folders
     const file = await createFile(
       newUser,
@@ -432,6 +520,8 @@ const registerUser = async (req, res) => {
       } else if (error.message.includes('username') || error.message.includes('email')) {
         throw new Error('Username or email already exists');
       }
+    } else if (error.message.includes('Failed to create default file')) {
+      res.status(500).json({ error: 'Failed to create default files. Please try again.' });
     } else if (error.message.includes('All fields (username, email, password) are required')) {
       throw new Error('All fields (username, email, password) are required');
     } else if (error.message.includes('Password must be at least 6 characters long')) {
