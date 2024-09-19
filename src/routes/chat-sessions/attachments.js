@@ -134,6 +134,7 @@ const handleFileUpload = asyncHandler(async (req, res) => {
         workspaceId,
         userId,
         folderId: folderId || null,
+        space: req.body.space,
       };
 
       res.json({
@@ -146,40 +147,6 @@ const handleFileUpload = asyncHandler(async (req, res) => {
       res.status(500).json({ error: 'Internal server error during file association' });
     }
   });
-});
-const getStorageFiles = asyncHandler(async (req, res) => {
-  try {
-    logger.info('Fetching files from storage', { bucketName: 'uploads' });
-    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-      bucketName: 'uploads',
-    });
-    logger.info('Fetching files from storage', { bucketName: 'uploads' });
-    const files = await bucket.find().toArray();
-    logger.info(`Fetched ${files.length} files from storage`, { bucketName: 'uploads' });
-    const fileList = await Promise.all(
-      files.map(async file => {
-        const workspace = await Workspace.findOne({ files: file._id });
-        const folder = await Folder.findOne({ files: file._id });
-        const user = await User.findOne({ files: file._id });
-        logger.info('File details:', file);
-        return {
-          id: file._id.toString(),
-          filename: file.filename,
-          contentType: file.contentType,
-          size: file.length,
-          uploadDate: file.uploadDate,
-          workspaceId: workspace ? workspace._id : null,
-          folderId: folder ? folder._id : null,
-          userId: user ? user._id : null,
-        };
-      })
-    );
-    logger.info('File list:', fileList);
-    res.json(fileList);
-  } catch (error) {
-    logger.error('Error fetching files from storage:', error);
-    res.status(500).json({ error: 'Error fetching files from storage' });
-  }
 });
 // File retrieval routes
 // router.get('/', asyncHandler(getAllFiles));
@@ -295,7 +262,7 @@ router.get('/name/:fileName', async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const query = { "filename": new RegExp(fileName, 'i') };
+    const query = { filename: new RegExp(fileName, 'i') };
     const files = await collection.find(query).skip(skip).limit(limit).toArray();
     const total = await collection.countDocuments(query);
 
@@ -337,7 +304,7 @@ router.get('/space/:space', async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const query = { "metadata.space": space };
+    const query = { 'metadata.space': space };
     const files = await collection.find(query).skip(skip).limit(limit).toArray();
     const total = await collection.countDocuments(query);
 
@@ -368,6 +335,72 @@ router.get('/space/:space', async (req, res) => {
     res.status(500).json({ error: 'Error fetching files by space', message: error.message });
   }
 });
+router.get(
+  '/:id/stream',
+  asyncHandler(async (req, res) => {
+    const fileId = req.params.id;
+
+    try {
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads',
+      });
+
+      const file = await bucket.find({ _id: mongoose.Types.ObjectId(fileId) }).toArray();
+
+      if (!file || file.length === 0) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      res.set('Content-Type', file[0].contentType);
+
+      const readStream = bucket.openDownloadStream(mongoose.Types.ObjectId(fileId));
+
+      readStream.on('error', err => {
+        return res.status(500).json({ error: `Error streaming file: ${err.message}` });
+      });
+
+      readStream.pipe(res);
+    } catch (error) {
+      logger.error(`Error streaming file: ${error.message}`);
+      res.status(500).json({ error: 'Error streaming file' });
+    }
+  })
+);
+// Route for downloading files
+router.get(
+  '/:id/download',
+  asyncHandler(async (req, res) => {
+    const fileId = req.params.id;
+
+    try {
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: 'uploads',
+      });
+
+      const file = await bucket.find({ _id: mongoose.Types.ObjectId(fileId) }).toArray();
+
+      if (!file || file.length === 0) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      res.set({
+        'Content-Type': file[0].contentType,
+        'Content-Disposition': `attachment; filename="${file[0].filename}"`,
+      });
+
+      const downloadStream = bucket.openDownloadStream(mongoose.Types.ObjectId(fileId));
+
+      downloadStream.on('error', err => {
+        return res.status(500).json({ error: `Error downloading file: ${err.message}` });
+      });
+
+      downloadStream.pipe(res);
+    } catch (error) {
+      logger.error(`Error downloading file: ${error.message}`);
+      res.status(500).json({ error: 'Error downloading file' });
+    }
+  })
+);
 
 // Message routes
 router.get('/messages/session/:sessionId', asyncHandler(getMessagesByChatSessionId));

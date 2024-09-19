@@ -152,7 +152,7 @@ const defaults = {
     },
   },
   staticFiles: {
-    public: path.join(__dirname, '..', 'public'),
+    public: path.join(__dirname, '..', '..', 'public'),
     dirs: ['static', 'uploads'],
   },
   gridfs: {

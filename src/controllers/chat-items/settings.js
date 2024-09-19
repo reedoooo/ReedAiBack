@@ -1,4 +1,14 @@
-const { Preset: ChatPreset, Tool: ChatTool, Model: ChatModel, Prompt: ChatPrompt, Collection: ChatCollection } = require('@/models');
+const { logger } = require('@/config/logging');
+const {
+  Preset: ChatPreset,
+  Tool: ChatTool,
+  Model: ChatModel,
+  Prompt,
+  Collection: ChatCollection,
+  User,
+  Workspace,
+  Folder,
+} = require('@/models');
 
 const createChatSettingsController = (Model, entityName) => {
   return {
@@ -22,16 +32,69 @@ const createChatSettingsController = (Model, entityName) => {
         res.status(500).json({ message: `Error fetching ${entityName}`, error: error.message });
       }
     },
-
     create: async (req, res) => {
       try {
-        const newEntity = new Model(req.body);
+        logger.info(`Creating new ${entityName}: ${JSON.stringify(req.body)}`);
+        const { userId, workspaceId, folderId, ...entityData } = req.body;
+
+        const newEntity = new Model(entityData);
         const savedEntity = await newEntity.save();
-        res.status(201).json(savedEntity);
+
+        const updatePromises = [];
+
+        if (userId) {
+          updatePromises.push(
+            User.findByIdAndUpdate(
+              userId,
+              { $push: { [`${entityName.toLowerCase()}s`]: savedEntity._id } },
+              { new: true }
+            )
+          );
+        }
+
+        if (workspaceId) {
+          updatePromises.push(
+            Workspace.findByIdAndUpdate(
+              workspaceId,
+              { $push: { [`${entityName.toLowerCase()}s`]: savedEntity._id } },
+              { new: true }
+            )
+          );
+        }
+
+        if (folderId) {
+          updatePromises.push(
+            Folder.findByIdAndUpdate(
+              folderId,
+              { $push: { [`${entityName.toLowerCase()}s`]: savedEntity._id } },
+              { new: true }
+            )
+          );
+        }
+
+        await Promise.all(updatePromises);
+
+        res.status(201).json({
+          message: `${entityName} created successfully and associated with user, workspace, and/or folder`,
+          data: savedEntity,
+        });
       } catch (error) {
         res.status(400).json({ message: `Error creating ${entityName}`, error: error.message });
       }
     },
+    // create: async (req, res) => {
+    //   try {
+    //     logger.info(`Creating new ${entityName}: ${JSON.stringify(req.body)}`);
+    //     const newEntity = new Model(req.body);
+    //     const savedEntity = await newEntity.save();
+    //     res.status(201).json({
+    //       message: `${entityName} created successfully`,
+    //       data: savedEntity,
+    //     });
+    //   } catch (error) {
+    //     res.status(400).json({ message: `Error creating ${entityName}`, error: error.message });
+    //   }
+    // },
 
     update: async (req, res) => {
       try {
@@ -62,7 +125,7 @@ const createChatSettingsController = (Model, entityName) => {
 const ChatPresetController = createChatSettingsController(ChatPreset, 'Chat preset');
 const ChatToolController = createChatSettingsController(ChatTool, 'Chat tool');
 const ChatModelController = createChatSettingsController(ChatModel, 'Chat model');
-const ChatPromptController = createChatSettingsController(ChatPrompt, 'Chat prompt');
+const ChatPromptController = createChatSettingsController(Prompt, 'Prompt');
 const ChatCollectionController = createChatSettingsController(ChatCollection, 'Chat collection');
 
 module.exports = {

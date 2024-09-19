@@ -1,4 +1,5 @@
-const { escapeRegExp } = require("./text");
+const { TokenTextSplitter } = require('langchain/text_splitter');
+const { escapeRegExp } = require('./text');
 
 const containsDiff = message => {
   return message.includes('<<<<<<< ORIGINAL') && message.includes('>>>>>>> UPDATED') && message.includes('=======\n');
@@ -43,24 +44,38 @@ const extractContent = chunk => {
   return chunk.choices[0]?.delta?.content || '';
 };
 
-const processChunkBatch = async (chunks) => {
+const processChunkBatch = async chunks => {
   try {
     // maps each chunk to its content and joins them into a single string
     const batchContent = chunks
-      .map((chunk) => {
+      .map(chunk => {
         const chunkContent = extractContent(chunk);
         return chunkContent;
       })
       .join('');
 
-
-    // setSSEHeader(res);
-    // res.write(`data: ${JSON.stringify(batchContent)}\n\n`);
-    return batchContentString;
+    return batchContent;
   } catch (error) {
     console.error('Error processing chunk batch:', error);
   }
 };
+
+function semanticChunking(text, chunkSize = 1000, overlap = 200) {
+  const splitter = new TokenTextSplitter({
+    chunkSize: chunkSize,
+    chunkOverlap: overlap,
+  });
+
+  return splitter.splitText(text);
+}
+
+function slidingWindowChunks(chunks, windowSize = 3) {
+  const windows = [];
+  for (let i = 0; i < chunks.length - windowSize + 1; i++) {
+    windows.push(chunks.slice(i, i + windowSize).join(' '));
+  }
+  return windows;
+}
 
 module.exports = {
   containsDiff,
@@ -69,4 +84,6 @@ module.exports = {
   chunkedUpsert,
   processChunkBatch,
   extractContent,
+  semanticChunking,
+  slidingWindowChunks,
 };

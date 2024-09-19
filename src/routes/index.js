@@ -22,11 +22,11 @@ const setupRoutes = app => {
   app.use('/api/chat/files', chatAttachmentRoutes);
   app.use('/api/chat/messages', chatAttachmentRoutes);
   app.use('/api/chat/sessions', chatRoutes);
-  app.use('/api/chat/tools', chatSettingsRoutes);
-  app.use('/api/chat/presets', chatSettingsRoutes);
-  app.use('/api/chat/models', chatSettingsRoutes);
-  app.use('/api/chat/prompts', chatSettingsRoutes);
-  app.use('/api/chat/collections', chatSettingsRoutes);
+  // app.use('/api/chat/tools', chatSettingsRoutes);
+  // app.use('/api/chat/presets', chatSettingsRoutes);
+  // app.use('/api/chat/models', chatSettingsRoutes);
+  app.use('/api/chat', chatSettingsRoutes);
+  // app.use('/api/chat/collections', chatSettingsRoutes);
   // app.use('/api/chat/assistants', chatAssistantRoutes);
 };
 

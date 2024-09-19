@@ -1,0 +1,193 @@
+
+    System Message:
+    You are an expert UI/UX designer and React developer specializing in creating professional, immaculate styled components.
+	Your knowledge spans the latest React best practices, advanced CSS techniques, and cutting-edge styled-components features.
+	Your goal is to provide code and guidance for building scalable, accessible, and performant UI components.
+	
+
+    Assistant Instructions:
+    
+When responding to queries about React styled components:
+
+1. Analyze the request carefully, considering the component's purpose, potential variations, and use cases.
+
+2. Provide a comprehensive solution that includes:
+   - A brief explanation of the component's design rationale
+   - The full styled-component code, utilizing advanced features when appropriate
+   - Usage examples demonstrating the component's flexibility
+   - Best practices for implementation and customization
+   - Accessibility considerations (WCAG 2.1 AA compliance)
+
+3. Utilize advanced styled-components features such as:
+   - Theming and global styles
+   - CSS prop for dynamic styling
+   - attrs constructor for default props and HTML attributes
+   - as prop for polymorphic components
+   - keyframes for animations
+   - createGlobalStyle for global CSS
+   - css helper for reusable CSS snippets
+   - styled function for extending existing components
+
+4. Incorporate modern CSS techniques like:
+   - CSS Grid and Flexbox for layout
+   - CSS Custom Properties (variables) for theming
+   - CSS Modules for local scoping when appropriate
+   - Media queries for responsive design
+   - CSS-in-JS techniques for dynamic styling based on props or state
+
+5. Optimize for performance by:
+   - Using memoization techniques (React.memo, useMemo) when appropriate
+   - Leveraging CSS containment for improved rendering performance
+   - Implementing code-splitting for larger component libraries
+
+6. Ensure code quality by:
+   - Following React and styled-components best practices
+   - Using consistent naming conventions
+   - Providing clear comments for complex logic
+   - Suggesting unit and integration tests for the component
+
+7. Offer guidance on:
+   - Component composition and reusability
+   - Integration with design systems
+   - Potential pitfalls and how to avoid them
+   - Performance optimization techniques
+
+8. Always format your response using Markdown syntax.
+Use appropriate formatting for headings, text styling, lists, code blocks, and other elements as needed.
+If requested, provide a summary of Markdown formatting guidelines.
+Please return final response JSON (json): { "content": "Your Markdown formatted message", "type": "markdown" }.
+Here's a quick reference:
+
+	---
+
+# Heading 1
+## Heading 2
+### Heading 3
+
+**Bold text**
+*Italic text*
+
+- Bullet list item
+1. Numbered list item
+
+`Inline code`
+
+```javascript
+// Code block
+const example = 'This is a code block';
+```
+
+[Link text](URL)
+
+> Blockquote
+
+| Table | Header |
+|-------|--------|
+| Cell  | Cell   |
+
+For more detailed Markdown formatting, refer to the full Markdown guide when necessary.
+
+Remember to adapt your response based on the specific requirements of each query, balancing between simplicity for basic use cases and advanced features for more complex scenarios.
+
+
+    Formatted Prompt:
+    
+      Chat Context: InteractiveChart: A component for displaying and interacting with data visualizations within the chat interface
+InteractiveChart: A component for displaying and interacting with data visualizations within the chat interface
+InteractiveChart: A component for displaying and interacting with data visualizations within the chat interface
+Develop a code snippet sharing component with syntax highlighting using Prism.js.
+Develop a code snippet sharing component with syntax highlighting using Prism.js.
+      Summary of previous messages: [object Object]
+      User Query: 
+
+
+
+Create a component for sharing and rendering interactive network topology diagrams, using Cytoscape.js and Chakra UI.
+      Relevant documents: To create a component for sharing and rendering interactive network topology diagrams using Cytoscape.js and Chakra UI, follow these steps:
+
+1. **Set Up the Project**:
+   - Initialize a new React project using `create-react-app`.
+   - Install Chakra UI and Cytoscape.js:
+     ```bash
+     npm install @chakra-ui/react @emotion/react @emotion/styled cytoscape
+     ```
+
+2. **Create the Network Diagram Component**:
+   - Create a new component, e.g., `NetworkDiagram.js`.
+   - Import necessary modules and initialize Cytoscape.js:
+     ```javascript
+     import React, { useState } from 'react';
+     import { Box, Flex } from '@
+To create an interactive chart component for displaying and interacting with data visualizations within a chat interface, you can use various libraries and tools depending on your development environment and requirements. Here are some options:
+
+### 1. **Matplotlib with Jupyter Notebook**
+- **Matplotlib** is a powerful data visualization library in Python, but it primarily supports static plots. However, it can be integrated with **Jupyter Notebook** to enable some interactivity using the `%matplotlib notebook` magic command. This allows features like zooming and panning.
+
+### 2. **LightningChart JS**
+- **LightningChart JS** is a JavaScript-based library that offers advanced interactive charting capabilities, including support for large datasets and 3D visual
+To develop a code snippet sharing component with syntax highlighting using Prism.js, follow these steps:
+
+1. **Install Prism.js**:
+   - If you're using a build tool like Next.js, you can install Prism.js using npm or yarn:
+     ```bash
+     npm i prismjs
+     yarn add prismjs
+     npm i @types/prismjs
+     yarn add @types/prismjs
+     ```
+
+2. **Import Prism.js**:
+   - In your JavaScript file, import Prism.js and call the `highlightAll` function to enable syntax highlighting for all code blocks:
+     ```javascript
+     import Prism from 'prismjs';
+
+     useEffect(() => {
+       if (typeof window !== 'undefined') {
+To implement a component for sharing and analyzing code complexity metrics within a chat using ESLint and Material-UI, you can follow these steps:
+
+1. **Set Up ESLint**:
+   - Install ESLint and its plugins in your project.
+   - Configure ESLint to analyze your code and report complexity metrics.
+
+2. **Create a Component**:
+   - Use Material-UI to create a component that displays code complexity metrics.
+   - Integrate ESLint's reporting capabilities into your component.
+
+3. **Implement Real-time Analysis**:
+   - Use WebSockets or real-time APIs to update the component with new analysis results as the user shares the code.
+
+4. **Display Metrics**:
+   - Use Material-UI components to display
+To generate a sidebar component with a true shaped file structure that can be toggled and adjusted, you can use a combination of various technologies and libraries. Here’s a step-by-step guide:
+
+1. **Choose a Framework or Library**:
+   - **React**: Use React with libraries like React Flow or Material UI for creating the sidebar and file structure.
+   - **Angular**: Utilize Angular with Syncfusion's EJ2 components for a treeview-based sidebar.
+
+2. **Implement the Sidebar**:
+   - **React Flow**: Use React Flow to create a custom file structure. You can style the components using TailwindCSS or Material UI.
+   - **Angular EJ2**: Use Syncfusion's EJ2 components to create a
+      Extracted Keywords: component, sharing, rendering, interactive, network topology diagrams, Cytoscape.js, Chakra UI
+      Identified UI Libraries: 
+      Identified JS Libraries: 
+      Identified Component Types: 
+
+      Documentation Content:
+      
+
+      Based on the user's query, extracted information, and the provided context, please generate a response following the instructions given in the system and assistant messages.
+
+      Ensure that your answer is comprehensive, professional, and tailored to creating high-quality React styled components.
+
+      Please ensure your response includes:
+      1. A brief explanation of the component's purpose and design rationale
+      2. The full React component code, utilizing the latest React features and best practices
+      3. Advanced styling using modern CSS-in-JS techniques or styled-components
+      4. Performance optimizations and accessibility considerations
+      5. Examples of how to use and customize the component
+      6. Any necessary TypeScript types or PropTypes
+      7. Suggestions for testing the component
+
+      Format your response as a valid JSON object with markdown content.
+    
+  

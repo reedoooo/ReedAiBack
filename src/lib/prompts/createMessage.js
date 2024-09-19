@@ -1,10 +1,10 @@
 // src/messageFactory.js
 // const { HumanMessage, AIMessage, SystemMessage, FunctionMessage, ToolMessage } = require('langchain');
-const { tools } = require('./static/tool');
 const { assistantPrompts } = require('./static/assistant');
 const { systemPrompts } = require('./static/system'); // Assuming you have system prompts
 const { HumanMessage, AIMessage, SystemMessage, FunctionMessage, ToolMessage } = require('@langchain/core/messages');
 const { Message } = require('@/models');
+const { tools } = require('../functions');
 
 const createMessage = async (type, content, sessionId, userId, sequenceNumber, name, additionalParams = {}) => {
   let newMessage;

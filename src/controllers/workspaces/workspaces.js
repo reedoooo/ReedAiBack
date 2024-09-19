@@ -1,6 +1,7 @@
 const { default: mongoose } = require('mongoose');
 const { Workspace, ChatSession, Folder, Preset, Tool, Model, Prompt, User } = require('@/models');
 const { logger } = require('@/config/logging');
+const { getDB } = require('@/db');
 
 const getAllWorkspaces = async (req, res) => {
   try {
@@ -19,7 +20,37 @@ const getAllUserWorkspaces = async (req, res) => {
     res.status(500).json({ message: 'Error fetching workspaces', error: error.message });
   }
 };
+async function fetchWorkspaceAndChatSessions(workspaceId) {
+  try {
+    // Validate the workspaceId
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      throw new Error('Invalid workspace ID');
+    }
+    logger.info(`Fetching workspace and chat sessions for workspaceId: ${workspaceId}`);
+    // Fetch workspace and chat sessions concurrently
+    const [workspace, chatSessions] = await Promise.all([
+      Workspace.findById(workspaceId).lean().populate('chatSessions'),
+      ChatSession.find({ workspaceId }).lean().populate('messages').populate('systemPrompt'),
+    ]);
+    logger.info(`workspace: ${workspace}`);
+    logger.info(`chatSessions: ${chatSessions}`);
+    // Check if workspace exists
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
 
+    // Populate workspace with chatSessions
+    workspace.chatSessions = chatSessions;
+
+    return {
+      workspace,
+      chatSessions,
+    };
+  } catch (error) {
+    console.error('Error fetching workspace and chat sessions:', error);
+    throw error;
+  }
+}
 async function fetchWorkspaceAndFolders(workspaceId, space) {
   try {
     // Validate the workspaceId
@@ -79,6 +110,7 @@ function organizeFoldersIntoTree(folders) {
 const getHomeWorkspace = async (req, res) => {
   const userId = req.params.userId;
   try {
+    const db = getDB();
     const homeWorkspace = await db.collection('workspaces').findOne({
       userId: userId,
       isHome: true,
@@ -234,4 +266,5 @@ module.exports = {
   getHomeWorkspace,
   fetchWorkspaceAndFolders,
   organizeFoldersIntoTree,
+  fetchWorkspaceAndChatSessions,
 };

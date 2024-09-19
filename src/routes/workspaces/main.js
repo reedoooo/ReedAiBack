@@ -15,6 +15,7 @@ const {
   updateWorkspace,
   deleteWorkspace,
   fetchWorkspaceAndFolders,
+  fetchWorkspaceAndChatSessions,
 } = require('@/controllers');
 
 const router = express.Router();
@@ -89,6 +90,23 @@ router.get('/:workspaceId/folders/space/:space', async (req, res) => {
     });
   } catch (error) {
     console.error(`Error in /folders/:space route: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching folders', message: error.message });
+  }
+});
+router.get('/:workspaceId/chatSessions', async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    // const { space } = req.query;
+    const result = await fetchWorkspaceAndChatSessions(workspaceId);
+
+    res.json({
+      message: `Workspace and chatSessions fetched successfully, workspaceId: ${workspaceId}, result: ${JSON.stringify(result)}`,
+      workspace: result.workspace,
+      chatSessions: result.chatSessions,
+      // ...result,
+    });
+  } catch (error) {
+    console.error(`Error in /sessions/:space route: ${error.message}`);
     res.status(500).json({ error: 'Error fetching folders', message: error.message });
   }
 });

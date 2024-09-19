@@ -57,6 +57,18 @@ const codeInterpreter = {
 const fileSearch = {
   type: 'retrieval',
   // Details about the retrieval tool
+  function: {
+    name: 'search_files',
+    description: 'Search for files containing a specific query in a given directory',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        directory: { type: 'string' },
+      },
+      required: ['query', 'directory'],
+    },
+  },
 };
 const analyzeImage = {
   type: 'function',
@@ -76,14 +88,7 @@ const analyzeImage = {
     // Function logic or reference here (e.g., analyzeImageWithVisionAPI)
   },
 };
-const tools = [
-  summarizeFunction,
-  fetchSearchResults,
-  codeInterpreter,
-  fileSearch,
-  analyzeImage,
-  // Additional tools can be added here
-];
+const tools = [summarizeFunction, fetchSearchResults, codeInterpreter, fileSearch, analyzeImage];
 const toolPrompts = {
   SUMMARIZE_MESSAGES: JSON.stringify(summarizeFunction),
   FETCH_SEARCH_RESULTS: JSON.stringify(fetchSearchResults),

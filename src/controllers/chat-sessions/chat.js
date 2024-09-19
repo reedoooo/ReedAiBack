@@ -5,6 +5,7 @@ const { streamWithCompletion } = require('@/utils/ai/openAi/chat/streaming');
 const { getEnv } = require('@/utils/api');
 const { checkApiKey } = require('@/utils/auth');
 const { saveMessagesToSession } = require('@/utils/ai/openAi/chat/initialize');
+const { getMainSystemMessageContent } = require('@/lib/prompts/createPrompt');
 
 const handleDatabaseOperation = async (operation, res, successStatus = 200, successMessage = null) => {
   try {

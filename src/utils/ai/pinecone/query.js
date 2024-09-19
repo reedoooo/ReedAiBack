@@ -69,4 +69,16 @@ const queryComponents = async (req, res) => {
   }
 };
 
-module.exports = { queryPineconeVectorStoreAndQueryLLM, queryComponents };
+const searchSimilarVectors = async (pinecone, indexName, question, embeddings) => {
+  const index = pinecone.Index(indexName);
+  const queryEmbedding = await embeddings.embedQuery(question);
+  const searchResults = await index.query({
+    vector: queryEmbedding,
+    topK: 5,
+    includeMetadata: true,
+  });
+
+  return searchResults.matches.map(match => match.metadata);
+};
+
+module.exports = { queryPineconeVectorStoreAndQueryLLM, queryComponents, searchSimilarVectors };

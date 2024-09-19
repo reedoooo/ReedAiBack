@@ -61,6 +61,7 @@ const folderSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
     files: [{ type: Schema.Types.ObjectId, ref: 'File' }],
+    prompts: [{ type: Schema.Types.ObjectId, ref: 'Prompt' }],
 
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },

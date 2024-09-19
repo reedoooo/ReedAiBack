@@ -12,6 +12,7 @@ const {
 } = require('../../controllers/chat-sessions/chat');
 const { ChatSession } = require('@/models/main.js');
 const { combinedChatStream } = require('@/utils/ai/openAi/chat/combinedStream');
+const { logger } = require('@/config/logging');
 const router = express.Router();
 
 // router.use(authenticate);
@@ -22,15 +23,23 @@ router.get('/', asyncHandler(getAllSessions));
 router.get('/:id', asyncHandler(getSessionById));
 router.post('/create', asyncHandler(createSession));
 router.put('/:id', asyncHandler(updateSession));
-router.put('/sessions/:id/messages', asyncHandler(saveMessagesToChat));
+router.put('/:id/messages', asyncHandler(saveMessagesToChat));
 router.get(
   '/:id/messages',
   asyncHandler(async (req, res) => {
+    logger.info(`Get messages for session: ${req.params.id}`);
     const session = await ChatSession.findById(req.params.id).populate('messages');
+    logger.info(`Session: ${session}`);
+    logger.info(`Session: ${JSON.stringify(session)}`);
+    logger.info(`Session MESSAGES: ${JSON.stringify(session.messages)}`);
+    logger.info('Messages:', session.messages);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
-    res.status(200).json(session.messages);
+    res.status(200).json({
+      message: 'Messages retrieved successfully',
+      messages: session.messages,
+    });
   })
 );
 router.delete('/:id', asyncHandler(deleteSession));

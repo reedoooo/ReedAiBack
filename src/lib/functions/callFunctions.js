@@ -147,6 +147,20 @@ const extractSummaries = summaryResponse => {
     individualSummariesArray,
   };
 };
+const searchFiles = (query, directory) => {
+  const results = [];
+  const files = fs.readdirSync(directory);
+
+  for (const file of files) {
+    const filePath = path.join(directory, file);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    if (content.toLowerCase().includes(query.toLowerCase())) {
+      results.push({ file, path: filePath });
+    }
+  }
+
+  return results;
+};
 
 module.exports = {
   summarizeMessages,
@@ -154,4 +168,5 @@ module.exports = {
   analyzeImage,
   fetchSearchResults,
   extractSummaries,
+	searchFiles,
 };
