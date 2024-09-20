@@ -10,9 +10,9 @@ const {
   saveMessagesToChat,
   chatStream,
 } = require('../../controllers/chat-sessions/chat');
-const { ChatSession } = require('@/models/main.js');
 const { combinedChatStream } = require('@/utils/ai/openAi/chat/combinedStream');
 const { logger } = require('@/config/logging');
+const { ChatSession } = require('@/models');
 const router = express.Router();
 
 // router.use(authenticate);
@@ -29,10 +29,8 @@ router.get(
   asyncHandler(async (req, res) => {
     logger.info(`Get messages for session: ${req.params.id}`);
     const session = await ChatSession.findById(req.params.id).populate('messages');
-    logger.info(`Session: ${session}`);
-    logger.info(`Session: ${JSON.stringify(session)}`);
+    // logger.info(`Session: ${session}`);
     logger.info(`Session MESSAGES: ${JSON.stringify(session.messages)}`);
-    logger.info('Messages:', session.messages);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }

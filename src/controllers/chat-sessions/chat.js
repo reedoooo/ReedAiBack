@@ -1,5 +1,5 @@
 const { default: OpenAI } = require('openai');
-const { ChatSession: Session, Message, User, Workspace } = require('@/models');
+const { ChatSession, Message, User, Workspace } = require('@/models');
 const { logger } = require('@/config/logging');
 const { streamWithCompletion } = require('@/utils/ai/openAi/chat/streaming');
 const { getEnv } = require('@/utils/api');
@@ -19,53 +19,13 @@ const handleDatabaseOperation = async (operation, res, successStatus = 200, succ
   }
 };
 
-const getAllSessions = (req, res) => handleDatabaseOperation(() => Session.find(), res);
+const getAllSessions = (req, res) => handleDatabaseOperation(() => ChatSession.find(), res);
 
 const getSessionById = (req, res) => {
   handleDatabaseOperation(
-    () => Session.findById(req.params.id).populate('messages').populate('files').populate('tools'),
+    () => ChatSession.findById(req.params.id).populate('messages').populate('files').populate('tools'),
     res
   );
-};
-
-const initialConnectionCompletion = async (prompt, openai) => {
-  const ideaGenerationFunction = {
-    name: 'generate_ideas',
-    description:
-      "Generate a list of initial ideas or services based on the user's prompt or topic to help them achieve their goal.",
-    parameters: {
-      type: 'object',
-      properties: {
-        ideas: {
-          type: 'array',
-          items: {
-            type: 'string',
-            description: 'A potential idea or service suggestion',
-          },
-        },
-      },
-      required: ['ideas'],
-    },
-  };
-
-  const response = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a creative assistant that generates ideas and suggestions based on user input.',
-      },
-      {
-        role: 'user',
-        content: `Provide a list of initial ideas or services to help a user achieve the following goal or prompt topic: "${prompt}"`,
-      },
-    ],
-    functions: [ideaGenerationFunction],
-    function_call: { name: 'generate_ideas' },
-  });
-
-  const functionCall = response.choices[0].message.function_call;
-  return functionCall && functionCall.name === 'generate_ideas' ? JSON.parse(functionCall.arguments).ideas : [];
 };
 
 const extractIdeasFromMessage = message => {
@@ -131,7 +91,7 @@ const createSession = async (req, res) => {
       },
     };
 
-    const newSession = new Session(newSessionData);
+    const newSession = new ChatSession(newSessionData);
     const savedSession = await newSession.save();
 
     const messagesToSave = [
@@ -162,10 +122,10 @@ const createSession = async (req, res) => {
 };
 
 const updateSession = (req, res) =>
-  handleDatabaseOperation(() => Session.findByIdAndUpdate(req.params.id, req.body, { new: true }), res);
+  handleDatabaseOperation(() => ChatSession.findByIdAndUpdate(req.params.id, req.body, { new: true }), res);
 
 const deleteSession = (req, res) =>
-  handleDatabaseOperation(() => Session.findByIdAndDelete(req.params.id), res, 200, {
+  handleDatabaseOperation(() => ChatSession.findByIdAndDelete(req.params.id), res, 200, {
     message: 'Session deleted successfully',
   });
 
@@ -225,7 +185,7 @@ const chatStream = async (req, res) => {
       res.status(500).json({ error: 'An error occurred while processing the chat stream' });
     }
   }
-	// finally {
+  // finally {
   //   res.write('data: [DONE]\n\n');
   //   res.end();
   // }

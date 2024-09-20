@@ -3,14 +3,14 @@ function replaceUnsupportedCharacters(text) {
   const replacements = {
     '●': '*',
   };
-  return text.replace(/[\u2022]/g, char => replacements[char] || char);
+  return text.replace(/[\u2022]/g, (char) => replacements[char] || char);
 }
 
 function replacePlaceholders(text, placeholders) {
-  return text.replace(/\[.*?\]/g, match => placeholders[match] || match);
+  return text.replace(/\[.*?\]/g, (match) => placeholders[match] || match);
 }
 
-const escapeRegExp = str => {
+const escapeRegExp = (str) => {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
@@ -18,7 +18,7 @@ function isString(test) {
   return typeof test === 'string';
 }
 
-const extractFirstCodeBlock = input => {
+const extractFirstCodeBlock = (input) => {
   const pattern = /```(\w+)?\n([\s\S]+?)\n```/g;
   let matches;
   while ((matches = pattern.exec(input)) !== null) {
@@ -46,7 +46,7 @@ async function extractTextFromUrl(url) {
       text.push($(element).text().trim());
     });
 
-    const lines = text.map(line => line.trim()).filter(line => line);
+    const lines = text.map((line) => line.trim()).filter((line) => line);
     const document = splitTextDocuments(lines.join('\n'));
     return document;
   } catch (error) {
@@ -57,7 +57,7 @@ async function extractTextFromUrl(url) {
 
 function splitTextDocuments(text) {
   const documents = text.split(/\n\s*\n/);
-  return documents.map(doc => doc.trim());
+  return documents.map((doc) => doc.trim());
 }
 
 function convertDraftContentStateToPlainText(draftContentState) {
@@ -65,7 +65,7 @@ function convertDraftContentStateToPlainText(draftContentState) {
     logger.error('Invalid draft content state: Missing blocks');
     return '';
   }
-  return draftContentState.blocks.map(block => block.text).join('\n');
+  return draftContentState.blocks.map((block) => block.text).join('\n');
 }
 
 function convertToRegularObject(inputArray) {
@@ -78,6 +78,10 @@ function convertToRegularObject(inputArray) {
   }, {});
 }
 
+function cleanJSONString(str) {
+  return str.replace(/```json\s*([\s\S]*?)\s*```/, '$1').trim();
+}
+
 module.exports = {
   replaceUnsupportedCharacters,
   replacePlaceholders,
@@ -88,4 +92,5 @@ module.exports = {
   splitTextDocuments,
   convertDraftContentStateToPlainText,
   convertToRegularObject,
+  cleanJSONString,
 };

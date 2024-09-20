@@ -1,7 +1,7 @@
 const { default: mongoose } = require('mongoose');
-const { Workspace, ChatSession, Folder, Preset, Tool, Model, Prompt, User } = require('@/models');
 const { logger } = require('@/config/logging');
 const { getDB } = require('@/db');
+const { Workspace, ChatSession, Folder, Preset, Tool, Model, Prompt, User } = require('@/models');
 
 const getAllWorkspaces = async (req, res) => {
   try {
@@ -48,6 +48,46 @@ async function fetchWorkspaceAndChatSessions(workspaceId) {
     };
   } catch (error) {
     console.error('Error fetching workspace and chat sessions:', error);
+    throw error;
+  }
+}
+async function fetchWorkspaceAndChatSession(workspaceId, chatSessionId) {
+  try {
+    // Validate the workspaceId and chatSessionId
+    if (!mongoose.Types.ObjectId.isValid(workspaceId) || !mongoose.Types.ObjectId.isValid(chatSessionId)) {
+      throw new Error('Invalid workspace ID or chat session ID');
+    }
+
+    logger.info(
+      `Fetching workspace and chat session for workspaceId: ${workspaceId} and chatSessionId: ${chatSessionId}`
+    );
+
+    // Fetch workspace and specific chat session concurrently
+    const [workspace, chatSession] = await Promise.all([
+      Workspace.findById(workspaceId).lean(),
+      ChatSession.findOne({ _id: chatSessionId, workspaceId }).lean().populate('messages').populate('systemPrompt'),
+    ]);
+
+    logger.info(`workspace: ${workspace}`);
+    logger.info(`chatSession: ${chatSession}`);
+
+    // Check if workspace and chat session exist
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+    if (!chatSession) {
+      throw new Error('Chat session not found');
+    }
+
+    // Populate workspace with the specific chatSession
+    workspace.chatSession = chatSession;
+
+    return {
+      workspace,
+      chatSession,
+    };
+  } catch (error) {
+    console.error('Error fetching workspace and chat session:', error);
     throw error;
   }
 }
@@ -267,4 +307,5 @@ module.exports = {
   fetchWorkspaceAndFolders,
   organizeFoldersIntoTree,
   fetchWorkspaceAndChatSessions,
+  fetchWorkspaceAndChatSession,
 };

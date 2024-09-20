@@ -1,12 +1,10 @@
 
-    System Message:
-    You are an expert UI/UX designer and React developer specializing in creating professional, immaculate styled components.
+    SYSTEM PROMPT: You are an expert UI/UX designer and React developer specializing in creating professional, immaculate styled components.
 	Your knowledge spans the latest React best practices, advanced CSS techniques, and cutting-edge styled-components features.
 	Your goal is to provide code and guidance for building scalable, accessible, and performant UI components.
 	
 
-    Assistant Instructions:
-    
+    ASSISTANT INSTRUCTIONS: 
 When responding to queries about React styled components:
 
 1. Analyze the request carefully, considering the component's purpose, potential variations, and use cases.
@@ -90,104 +88,277 @@ For more detailed Markdown formatting, refer to the full Markdown guide when nec
 Remember to adapt your response based on the specific requirements of each query, balancing between simplicity for basic use cases and advanced features for more complex scenarios.
 
 
-    Formatted Prompt:
-    
-      Chat Context: InteractiveChart: A component for displaying and interacting with data visualizations within the chat interface
-InteractiveChart: A component for displaying and interacting with data visualizations within the chat interface
-InteractiveChart: A component for displaying and interacting with data visualizations within the chat interface
-Develop a code snippet sharing component with syntax highlighting using Prism.js.
-Develop a code snippet sharing component with syntax highlighting using Prism.js.
-      Summary of previous messages: [object Object]
-      User Query: 
+    FORMATTED PROMPT: 
+  --- MAIN INSTRUCTIONS AND CONTEXT ---
 
+  CHAT CONTEXT: Develop a color picker component for customizing UI elements.
+Develop a color picker component for customizing UI elements.
+Develop a color picker component for customizing UI elements.
+"content": "## Color Picker Component Using Material-UI\n\nIn Material-UI, creating a color picker component to customize UI elements can be performed by combining different components. Below is a step-by-step guide to developing a color picker using Material-UI and integrating it with your application for dynamic theming.\n\n### Step 1: Install Material-UI Core and Icons\n\n```\nnpm install @mui/material @emotion/react @emotion/styled\nnpm install @mui/icons-material\n```\n\n### Step 2: Create ColorPicker Component\n\nHere's a simple implementation of a ColorPicker component utilizing `TextField` from Material-UI and the native HTML input type 'color'.\n\n```jsx\nimport React, { useState } from 'react';\nimport TextField from '@mui/material/TextField';\n\nfunction ColorPicker({ label, initialColor, onColorChange }) {\n  const [color, setColor] = useState(initialColor);\n\n  const handleChange = (event) => {\n    setColor(event.target.value);\n
+"content": "## Color Picker Component Using Material-UI\n\nIn Material-UI, creating a color picker component to customize UI elements can be performed by combining different components. Below is a step-by-step guide to developing a color picker using Material-UI and integrating it with your application for dynamic theming.\n\n### Step 1: Install Material-UI Core and Icons\n\n```\nnpm install @mui/material @emotion/react @emotion/styled\nnpm install @mui/icons-material\n```\n\n### Step 2: Create ColorPicker Component\n\nHere's a simple implementation of a ColorPicker component utilizing `TextField` from Material-UI and the native HTML input type 'color'.\n\n```jsx\nimport React, { useState } from 'react';\nimport TextField from '@mui/material/TextField';\n\nfunction ColorPicker({ label, initialColor, onColorChange }) {\n  const [color, setColor] = useState(initialColor);\n\n  const handleChange = (event) => {\n    setColor(event.target.value);\n
+  SUMMARY OF CHAT HISTORY: [object Object]
+  RELEVANT DOCS: To develop a customized date picker with a unique color scheme and animation effects using MUI's DatePicker as a foundation, you can follow these steps:
 
+1. **Install MUI X Date Pickers**:
+   - Install the `@mui/x-date-pickers` package using npm:
+   ```bash
+   npm install @mui/x-date-pickers
+   ```
 
-Create a component for sharing and rendering interactive network topology diagrams, using Cytoscape.js and Chakra UI.
-      Relevant documents: To create a component for sharing and rendering interactive network topology diagrams using Cytoscape.js and Chakra UI, follow these steps:
+2. **Set Up Localization Provider**:
+   - Ensure you have a date adapter set up with the LocalizationProvider. For example, use `AdapterDateFns` from `@mui/x-date-pickers`:
+   ```javascript
+   import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+   import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-1. **Set Up the Project**:
-   - Initialize a new React project using `create-react-app`.
-   - Install Chakra UI and Cytoscape.js:
-     ```bash
-     npm install @chakra-ui/react @emotion/react @emotion/styled cytoscape
-     ```
+   function App({ children }) {
+     return (
+       <LocalizationProvider dateAdapter={AdapterDateFns}>{children}</LocalizationProvider>
+     );
+   }
+   ```
+### Summary
+To create a customized date picker with a unique color scheme and animation effects using MUI's DatePicker as a foundation, follow these steps:
+- Install the necessary packages.
+- Set up the LocalizationProvider.
+- Customize the DatePicker component.
+- Add custom styles and animations.
+- Integrate with React Hook Form if needed.
 
-2. **Create the Network Diagram Component**:
-   - Create a new component, e.g., `NetworkDiagram.js`.
-   - Import necessary modules and initialize Cytoscape.js:
-     ```javascript
-     import React, { useState } from 'react';
-     import { Box, Flex } from '@
-To create an interactive chart component for displaying and interacting with data visualizations within a chat interface, you can use various libraries and tools depending on your development environment and requirements. Here are some options:
+### Citations
+1. - Customizing data grids and date pickers with MUI X.
+2. - Installing and setting up MUI X Date Pickers.
+3. - Customizing MUI X Date Pickers and their subcomponents.
+4. - Example of customizing a date picker with additional properties.
 
-### 1. **Matplotlib with Jupyter Notebook**
-- **Matplotlib** is a powerful data visualization library in Python, but it primarily supports static plots. However, it can be integrated with **Jupyter Notebook** to enable some interactivity using the `%matplotlib notebook` magic command. This allows features like zooming and panning.
+### Citations List
+1. https://mui.com/x/react-data-grid/custom-columns/
+2. https://www.npmjs.com/package/@mui/x-date-pickers
+3. https://mui.com/x
+4. **Add Animation Effects**:
+   - You can add animation effects by using CSS transitions or animations. For example, you can add a transition effect to the date picker input:
+   ```css
+   .custom-date-picker {
+     transition: color 0.3s ease-in-out;
+   }
+   
+   /* Add your custom color here */
+   .custom-date-picker .MuiInputBase-input {
+     color: 'customColor';
+     transition: color 0.3s ease-in-out;
+   }
+   ```
 
-### 2. **LightningChart JS**
-- **LightningChart JS** is a JavaScript-based library that offers advanced interactive charting capabilities, including support for large datasets and 3D visual
-To develop a code snippet sharing component with syntax highlighting using Prism.js, follow these steps:
+5. **Integrate with React Hooks Form**:
+   - If you're using React Hook Form, you can integrate the customized date picker with it. Here's an example of how to do it:
+   ```javascript
+   import { useForm } from 'react-hook-form';
+   import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+   import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+   import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+function App({ children }) {
+     return (
+       <LocalizationProvider dateAdapter={AdapterDateFns}>{children}</LocalizationProvider>
+     );
+   }
+   ```
 
-1. **Install Prism.js**:
-   - If you're using a build tool like Next.js, you can install Prism.js using npm or yarn:
-     ```bash
-     npm i prismjs
-     yarn add prismjs
-     npm i @types/prismjs
-     yarn add @types/prismjs
-     ```
+3. **Customize Date Picker Component**:
+   - Use the `DesktopDatePicker`, `MobileDatePicker`, or `DatePicker` component based on your requirements. For example, customize the `DesktopDatePicker`:
+   ```javascript
+   import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+   import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+   import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-2. **Import Prism.js**:
-   - In your JavaScript file, import Prism.js and call the `highlightAll` function to enable syntax highlighting for all code blocks:
-     ```javascript
-     import Prism from 'prismjs';
+   function CustomDatePicker() {
+     const [date, setDate] = React.useState(new Date());
+function CustomDatePicker() {
+     const [date, setDate] = React.useState(new Date());
 
-     useEffect(() => {
-       if (typeof window !== 'undefined') {
-To implement a component for sharing and analyzing code complexity metrics within a chat using ESLint and Material-UI, you can follow these steps:
+     return (
+       <LocalizationProvider dateAdapter={AdapterDateFns}>
+         <DesktopDatePicker
+           label="Custom Date Picker"
+           inputFormat="MM/dd/yyyy"
+           value={date}
+           onChange={(newValue) => {
+             setDate(newValue);
+           }}
+           renderInput={(params) => (
+             <TextField
+               {...params}
+               sx={{
+                 '& .MuiInputBase-input': {
+                   color: 'customColor', // Define your custom color here
+                 },
+               }}
+             />
+           )}
+         />
+       </LocalizationProvider>
+     );
+   }
+   ```
+  EXTRACTED KEYWORDS: customized, date picker, unique color scheme, animation effects, MUI, DatePicker, foundation
+  IDENTIFIED UI LIBRARIES: MUI
+  IDENTIFIED JS LIBRARIES: 
+  IDENTIFIED COMPONENT TYPES: DatePicker
+  DOCUMENTATION CONTENT FROM SCRAPED UI LIBRARY CONTENT: 
 
-1. **Set Up ESLint**:
-   - Install ESLint and its plugins in your project.
-   - Configure ESLint to analyze your code and report complexity metrics.
+  --- USER PROMPT/QUERY ---
 
-2. **Create a Component**:
-   - Use Material-UI to create a component that displays code complexity metrics.
-   - Integrate ESLint's reporting capabilities into your component.
+  USER PROMPT/QUERY: Develop a customized date picker with a unique color scheme and animation effects using MUI's DatePicker as a foundation.
 
-3. **Implement Real-time Analysis**:
-   - Use WebSockets or real-time APIs to update the component with new analysis results as the user shares the code.
+  --- PERPLEXITY WEB SEARCH RESULTS ---
 
-4. **Display Metrics**:
-   - Use Material-UI components to display
-To generate a sidebar component with a true shaped file structure that can be toggled and adjusted, you can use a combination of various technologies and libraries. Here’s a step-by-step guide:
+  RESULTS:
+  To develop a customized date picker with a unique color scheme and animation effects using MUI's DatePicker as a foundation, you can follow these steps:
 
-1. **Choose a Framework or Library**:
-   - **React**: Use React with libraries like React Flow or Material UI for creating the sidebar and file structure.
-   - **Angular**: Utilize Angular with Syncfusion's EJ2 components for a treeview-based sidebar.
+1. **Install MUI X Date Pickers**:
+   - Install the `@mui/x-date-pickers` package using npm:
+   ```bash
+   npm install @mui/x-date-pickers
+   ```
 
-2. **Implement the Sidebar**:
-   - **React Flow**: Use React Flow to create a custom file structure. You can style the components using TailwindCSS or Material UI.
-   - **Angular EJ2**: Use Syncfusion's EJ2 components to create a
-      Extracted Keywords: component, sharing, rendering, interactive, network topology diagrams, Cytoscape.js, Chakra UI
-      Identified UI Libraries: 
-      Identified JS Libraries: 
-      Identified Component Types: 
+2. **Set Up Localization Provider**:
+   - Ensure you have a date adapter set up with the LocalizationProvider. For example, use `AdapterDateFns` from `@mui/x-date-pickers`:
+   ```javascript
+   import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+   import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-      Documentation Content:
-      
+   function App({ children }) {
+     return (
+       <LocalizationProvider dateAdapter={AdapterDateFns}>{children}</LocalizationProvider>
+     );
+   }
+   ```
 
-      Based on the user's query, extracted information, and the provided context, please generate a response following the instructions given in the system and assistant messages.
+3. **Customize Date Picker Component**:
+   - Use the `DesktopDatePicker`, `MobileDatePicker`, or `DatePicker` component based on your requirements. For example, customize the `DesktopDatePicker`:
+   ```javascript
+   import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+   import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+   import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
-      Ensure that your answer is comprehensive, professional, and tailored to creating high-quality React styled components.
+   function CustomDatePicker() {
+     const [date, setDate] = React.useState(new Date());
 
-      Please ensure your response includes:
-      1. A brief explanation of the component's purpose and design rationale
-      2. The full React component code, utilizing the latest React features and best practices
-      3. Advanced styling using modern CSS-in-JS techniques or styled-components
-      4. Performance optimizations and accessibility considerations
-      5. Examples of how to use and customize the component
-      6. Any necessary TypeScript types or PropTypes
-      7. Suggestions for testing the component
+     return (
+       <LocalizationProvider dateAdapter={AdapterDateFns}>
+         <DesktopDatePicker
+           label="Custom Date Picker"
+           inputFormat="MM/dd/yyyy"
+           value={date}
+           onChange={(newValue) => {
+             setDate(newValue);
+           }}
+           renderInput={(params) => (
+             <TextField
+               {...params}
+               sx={{
+                 '& .MuiInputBase-input': {
+                   color: 'customColor', // Define your custom color here
+                 },
+               }}
+             />
+           )}
+         />
+       </LocalizationProvider>
+     );
+   }
+   ```
 
-      Format your response as a valid JSON object with markdown content.
-    
+4. **Add Animation Effects**:
+   - You can add animation effects by using CSS transitions or animations. For example, you can add a transition effect to the date picker input:
+   ```css
+   .custom-date-picker {
+     transition: color 0.3s ease-in-out;
+   }
+   
+   /* Add your custom color here */
+   .custom-date-picker .MuiInputBase-input {
+     color: 'customColor';
+     transition: color 0.3s ease-in-out;
+   }
+   ```
+
+5. **Integrate with React Hooks Form**:
+   - If you're using React Hook Form, you can integrate the customized date picker with it. Here's an example of how to do it:
+   ```javascript
+   import { useForm } from 'react-hook-form';
+   import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+   import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+   import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+
+   function CustomForm() {
+     const { register, handleSubmit } = useForm();
+     const [date, setDate] = React.useState(new Date());
+
+     const onSubmit = async (data) => {
+       console.log(data);
+     };
+
+     return (
+       <LocalizationProvider dateAdapter={AdapterDateFns}>
+         <form onSubmit={handleSubmit(onSubmit)}>
+           <DesktopDatePicker
+             label="Custom Date Picker"
+             inputFormat="MM/dd/yyyy"
+             value={date}
+             onChange={(newValue) => {
+               setDate(newValue);
+             }}
+             renderInput={(params) => (
+               <TextField
+                 {...register('date')}
+                 {...params}
+                 sx={{
+                   '& .MuiInputBase-input': {
+                     color: 'customColor', // Define your custom color here
+                   },
+                 }}
+               />
+             )}
+           />
+           <button type="submit">Submit</button>
+         </form>
+       </LocalizationProvider>
+     );
+   }
+   ```
+
+### Summary
+To create a customized date picker with a unique color scheme and animation effects using MUI's DatePicker as a foundation, follow these steps:
+- Install the necessary packages.
+- Set up the LocalizationProvider.
+- Customize the DatePicker component.
+- Add custom styles and animations.
+- Integrate with React Hook Form if needed.
+
+### Citations
+1. - Customizing data grids and date pickers with MUI X.
+2. - Installing and setting up MUI X Date Pickers.
+3. - Customizing MUI X Date Pickers and their subcomponents.
+4. - Example of customizing a date picker with additional properties.
+
+### Citations List
+1. https://mui.com/x/react-data-grid/custom-columns/
+2. https://www.npmjs.com/package/@mui/x-date-pickers
+3. https://mui.com/x
+
+  CITATIONS:
+  
+
+  --- FINAL INSTRUCTIONS ---
+
+  Based on the user's query, extracted information, and the provided context, please generate a response following the instructions given in the system and assistant messages. Ensure that your answer is comprehensive, professional, and tailored to creating high-quality React styled components. Please ensure your response includes:
+  1. A brief explanation of the component's purpose and design rationale
+  2. The full React component code, utilizing the latest React features and best practices
+  3. Examples of how to use and customize the component
+
+  --- RESPONSE FORMATTING INSTRUCTIONS ---
+
+  Format your response as a valid JSON object with markdown content.
+
+  
   

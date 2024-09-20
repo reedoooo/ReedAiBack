@@ -1,3 +1,4 @@
+const { logger } = require('@/config/logging');
 const { extractContent, parseContent } = require('@/utils/processing');
 const EventEmitter = require('node:events');
 
@@ -10,7 +11,9 @@ class StreamResponseHandler {
 
   handleChunk(chunk) {
     const content = extractContent(chunk);
+    // const content = extractContent(chunk.content);
     this.fullResponse += content;
+    logger.info(`Received chunk: ${JSON.stringify(content)}`);
     const parsedChunkContent = parseContent(content);
     this.parsedChunks.push(parsedChunkContent);
     return content;

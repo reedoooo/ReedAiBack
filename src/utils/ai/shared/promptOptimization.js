@@ -20,6 +20,7 @@ const prettier = require('prettier');
 const cheerio = require('cheerio');
 const axios = require('axios');
 const { SystemMessage, HumanMessage } = require('@langchain/core/messages');
+const { cleanJSONString } = require('@/utils/processing');
 
 const uiLibraries = [
   { name: 'React', sitemap: 'https://reactjs.org/sitemap.xml' },
@@ -59,7 +60,7 @@ async function generateAndLintCode(prompt) {
 
   return formattedCode;
 }
-const generateOptimizedPrompt = async input => {
+const generateOptimizedPrompt = async (input) => {
   const template = `
     Given the user input: {input}
 
@@ -92,7 +93,7 @@ const performSemanticSearch = async (query, k = 3) => {
     textKey: 'text',
   });
   const results = await vectorStore.similaritySearch(query, k);
-  return results.map(result => result.pageContent);
+  return results.map((result) => result.pageContent);
 };
 
 const generateResponse = async (input, context) => {
@@ -114,7 +115,7 @@ const generateResponse = async (input, context) => {
   return result.text;
 };
 
-const summarizeText = async text => {
+const summarizeText = async (text) => {
   const template = `
     Summarize the following text in a concise manner:
 
@@ -133,26 +134,27 @@ const summarizeText = async text => {
 };
 
 // Function to extract keywords from the user query
-const extractKeywords = async text => {
-  const systemMessage = new SystemMessage('You are a helpful assistant that extracts main keywords from given text.');
+const extractKeywords = async (text) => {
+  const systemMessage = new SystemMessage(
+    'You are a helpful assistant that extracts main keywords from given text.'
+  );
   const humanMessage = new HumanMessage(
     `Extract the main keywords from the following text:\n\n${text}\n\nProvide the keywords as a comma-separated list.`
   );
 
   const response = await chatOpenAI.invoke([systemMessage, humanMessage]);
   logger.info(`Extracted keywords: ${response.content}`);
-  return response.content.split(',').map(keyword => keyword.trim());
+  return response.content.split(',').map((keyword) => keyword.trim());
 };
 
 // Function to identify mentioned libraries and component types
-const identifyLibrariesAndComponents = async query => {
+const identifyLibrariesAndComponents = async (query) => {
   try {
     const systemMessage = new SystemMessage(
       'You are a helpful assistant that identifies UI libraries, JS libraries, and component types mentioned in a query.'
     );
-    const humanMessage =
-      new HumanMessage(
-        `Analyze the following query and identify any mentioned UI libraries, JS libraries, and component types:
+    const humanMessage = new HumanMessage(
+      `Analyze the following query and identify any mentioned UI libraries, JS libraries, and component types:
         Query: ${query}
         Provide the results in the following JSON format:
         {
@@ -160,16 +162,16 @@ const identifyLibrariesAndComponents = async query => {
           "jsLibraries": ["library1", "library2"],
           "componentTypes": ["component1", "component2"]
         }`
-      );
+    );
 
     const response = await chatOpenAI.invoke([systemMessage, humanMessage]);
     logger.info(`Identified libraries and components: ${response.content}`);
-    const parsedResponse = JSON.parse(response.content);
+    const parsedResponse = JSON.parse(cleanJSONString(response.content));
     return {
       uiLibraries: parsedResponse.uiLibraries,
       jsLibraries: parsedResponse.jsLibraries,
       componentTypes: parsedResponse.componentTypes,
-    }
+    };
   } catch (error) {
     logger.error(`Error identifying libraries and components: ${error}`);
     return { uiLibraries: [], jsLibraries: [], componentTypes: [] };
@@ -179,7 +181,9 @@ const identifyLibrariesAndComponents = async query => {
 // Function to get the documentation URL for a specific library and component
 const getDocumentationUrl = async (library, componentType) => {
   try {
-    const matchingLibrary = uiLibraries.find(lib => lib.name.toLowerCase() === library.toLowerCase());
+    const matchingLibrary = uiLibraries.find(
+      (lib) => lib.name.toLowerCase() === library.toLowerCase()
+    );
     if (!matchingLibrary) return null;
 
     const sitemapUrl = matchingLibrary.sitemap;
@@ -203,7 +207,7 @@ const getDocumentationUrl = async (library, componentType) => {
 };
 
 // Function to scrape documentation content
-const scrapeDocumentation = async url => {
+const scrapeDocumentation = async (url) => {
   const response = await axios.get(url);
   const $ = cheerio.load(response.data);
 
@@ -213,7 +217,7 @@ const scrapeDocumentation = async url => {
 };
 
 // Main function to process the user query and retrieve relevant documentation
-const processQuery = async query => {
+const processQuery = async (query) => {
   const keywords = await extractKeywords(query);
   const { uiLibraries, jsLibraries, componentTypes } = await identifyLibrariesAndComponents(query);
 
@@ -273,7 +277,7 @@ const generateOptimizationPrompt = async (query, results) => {
 
   const libraries = [...results.uiLibraries, ...results.jsLibraries].join(', ');
   const docSnippets = results.documentationContent
-    .map(doc => `${doc.library} - ${doc.componentType}:\n${doc.content}\n`)
+    .map((doc) => `${doc.library} - ${doc.componentType}:\n${doc.content}\n`)
     .join('\n');
 
   return promptTemplate.format({
@@ -283,17 +287,19 @@ const generateOptimizationPrompt = async (query, results) => {
   });
 };
 
-async function savePromptBuild(systemContent, assistantInstructions, formattedPrompt, fileName = 'prompt_build.txt') {
+async function savePromptBuild(
+  systemContent,
+  assistantInstructions,
+  formattedPrompt,
+  fileName = 'prompt_build.txt'
+) {
   const promptBuildFile = path.join(__dirname, '..', '..', fileName);
   const promptBuild = `
-    System Message:
-    ${systemContent}
+    SYSTEM PROMPT: ${systemContent}
 
-    Assistant Instructions:
-    ${assistantInstructions}
+    ASSISTANT INSTRUCTIONS: ${assistantInstructions}
 
-    Formatted Prompt:
-    ${formattedPrompt}
+    FORMATTED PROMPT: ${formattedPrompt}
   `;
 
   try {

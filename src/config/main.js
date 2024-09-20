@@ -153,7 +153,7 @@ const defaults = {
   },
   staticFiles: {
     public: path.join(__dirname, '..', '..', 'public'),
-    dirs: ['static', 'uploads'],
+    dirs: ['static', 'uploads', 'static/images'], // Adding 'static/images' to access the images directory within static
   },
   gridfs: {
     bucketName: 'uploads',

@@ -4,7 +4,7 @@ const { default: axios } = require('axios');
 const fs = require('fs');
 const sharp = require('sharp');
 
-const analyzeTextWithGPT = async text => {
+const analyzeTextWithGPT = async (text) => {
   try {
     const response = await openai.Completion.create({
       model: 'gpt-3.5-turbo', // Use GPT-3.5-turbo model
@@ -17,7 +17,7 @@ const analyzeTextWithGPT = async text => {
     return `Could not analyze content.`;
   }
 };
-const analyzeImage = async imageUrl => {
+const analyzeImage = async (imageUrl) => {
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4-vision-preview', // Ensure this is the correct model name
@@ -44,7 +44,7 @@ const analyzeImage = async imageUrl => {
     return `Could not analyze image: ${error.message}`;
   }
 };
-const fetchSearchResults = async query => {
+const fetchSearchResults = async (query) => {
   let data = JSON.stringify({
     q: query,
   });
@@ -70,9 +70,12 @@ const fetchSearchResults = async query => {
       RADIX_UI: 'https://www.radix-ui.com/primitives/docs',
       SHADCN: 'https://ui.shadcn.com/docs',
     };
-    const uiLinksArray = Object.keys(frameworkDocs).map(key => ({ framework: key, url: frameworkDocs[key] }));
-    const chatCodeContextSearch = results.organic.filter(res =>
-      res.link.includes.oneOf(uiLinksArray.map(ui => ui.url))
+    const uiLinksArray = Object.keys(frameworkDocs).map((key) => ({
+      framework: key,
+      url: frameworkDocs[key],
+    }));
+    const chatCodeContextSearch = results.organic.filter((res) =>
+      res.link.includes.oneOf(uiLinksArray.map((ui) => ui.url))
     );
     for (const result of chatCodeContextSearch) {
       // const scrapedData = await scrapeLinkedIn(result.link);
@@ -143,9 +146,9 @@ const summarizeMessages = async (messages, chatOpenAI) => {
   }
   return { overallSummary: 'Unable to generate summary', individualSummaries: [] };
 };
-const extractSummaries = summaryResponse => {
+const extractSummaries = (summaryResponse) => {
   const overallSummaryString = summaryResponse.overallSummary;
-  const individualSummariesArray = summaryResponse.individualSummaries.map(summary => ({
+  const individualSummariesArray = summaryResponse.individualSummaries.map((summary) => ({
     id: summary.id,
     summary: summary.summary,
   }));
@@ -183,7 +186,7 @@ async function performWebSearch(query, numResults) {
       throw new Error('Invalid response format from Perplexity API');
     }
 
-    return response.data.results.map(result => ({
+    return response.data.results.map((result) => ({
       pageContent: result.snippet || '',
       metadata: { url: result.url || '' },
     }));
@@ -205,6 +208,17 @@ async function performWebSearch(query, numResults) {
     }
   }
 }
+/**
+ * Performs a perplexity completion using the Perplexity AI API.
+ *
+ * @param {string} prompt - The prompt for the completion.
+ * @param {string} perplexityApiKey - The API key for accessing the Perplexity AI API.
+ * @returns {Promise<Object>} - A promise that resolves to the response with content and citations.
+ * @returns {string} .pageContent - The content returned by the API.
+ * @returns {Object} .metadata - The metadata containing the citations.
+ * @returns {Array<Object>} .metadata.citations - The array of citation objects.
+ * @throws {Error} - If the prompt or API key is invalid, or if there is an error during the completion.
+ */
 async function performPerplexityCompletion(prompt, perplexityApiKey) {
   if (!prompt || typeof prompt !== 'string') {
     throw new Error('Invalid prompt: Prompt must be a non-empty string');
@@ -216,15 +230,18 @@ async function performPerplexityCompletion(prompt, perplexityApiKey) {
     const data = {
       model: 'llama-3.1-sonar-small-128k-online',
       messages: [
-        { role: 'system', content: 'Be precise and concise.' },
+        {
+          role: 'system',
+          content:
+            'Provide a concise answer. Include in-text citations in the format [citation_number], and return a separate list of citations.',
+        },
         { role: 'user', content: prompt },
       ],
       return_citations: true,
-      search_domain_filter: ['perplexity.ai'],
       return_images: false,
       search_recency_filter: 'month',
       stream: false,
-      max_tokens: 150,
+      max_tokens: 1024,
       temperature: 0.5,
     };
     const config = {
@@ -243,17 +260,24 @@ async function performPerplexityCompletion(prompt, perplexityApiKey) {
       throw new Error('Invalid response format from Perplexity API');
     }
 
-    const completion = response.data.choices[0].message.content.trim(); // Adjusted to access the correct property
+    const completion = response.data.choices[0].message.content.trim();
     const citations = response.data.choices[0].message.citations || [];
     logger.info(`Perplexity completion response: ${completion} - Citations: ${citations.length}`);
-    // return [{ pageContent: completion, metadata: { source: 'Perplexity AI', citations } }];
-    const formattedResponse = formatResponseWithCitations(completion, citations);
 
-    return formattedResponse;
+    // Return the content and citations separately
+    return {
+      pageContent: completion,
+      metadata: {
+        source: 'Perplexity AI',
+        citations,
+      },
+    };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response) {
-        console.error(`Perplexity API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+        console.error(
+          `Perplexity API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`
+        );
         throw new Error(`Perplexity API error: ${error.response.status}`);
       } else if (error.request) {
         console.error('No response received from Perplexity API');
@@ -268,6 +292,22 @@ async function performPerplexityCompletion(prompt, perplexityApiKey) {
     }
   }
 }
+
+/**
+ * Formats the response content with citations.
+ *
+ * @param {string} content - The content to format.
+ * @param {Array<Object>} citations - The array of citations.
+ * @param {string} citations[].text - The text to replace with citation key.
+ * @param {Object} citations[].metadata - The metadata of the citation.
+ * @param {string} citations[].metadata.title - The title of the citation.
+ * @param {string} citations[].metadata.url - The URL of the citation.
+ * @returns {Object} - The formatted response content and metadata.
+ * @returns {string} .pageContent - The formatted content in markdown format.
+ * @returns {Object} .metadata - The metadata of the formatted content.
+ * @returns {string} .metadata.type - The type of the formatted content (always "markdown").
+ * @returns {Array<string>} .metadata.references - The array of citation references in the format "[@RefN]: Title. URL".
+ */
 function formatResponseWithCitations(content, citations) {
   let markdownContent = content;
   const references = [];
@@ -279,11 +319,38 @@ function formatResponseWithCitations(content, citations) {
   });
 
   if (references.length > 0) {
-    markdownContent += "\n\n## References\n" + references.join("\n");
+    markdownContent += '\n\n## References\n' + references.join('\n');
   }
 
-  return { pageContent: markdownContent, metadata: { type: "markdown", references } };
+  return { pageContent: markdownContent, metadata: { type: 'markdown', references } };
 }
+
+/**
+ * Error handling function for the Perplexity API request.
+ *
+ * @param {Error} error - The error thrown during the request.
+ * @throws {Error} - Throws a new error with a detailed message.
+ */
+function handleError(error) {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      console.error(
+        `Perplexity API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`
+      );
+      throw new Error(`Perplexity API error: ${error.response.status}`);
+    } else if (error.request) {
+      console.error('No response received from Perplexity API');
+      throw new Error('No response received from Perplexity API');
+    } else {
+      console.error('Error setting up the request:', error.message);
+      throw new Error('Error setting up the request to Perplexity API');
+    }
+  } else {
+    console.error('Unexpected error during Perplexity completion:', error);
+    throw new Error('Unexpected error during Perplexity completion');
+  }
+}
+
 module.exports = {
   summarizeMessages,
   analyzeTextWithGPT,

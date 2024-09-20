@@ -1,7 +1,7 @@
 // src/utils/chat.js
 const { MongoDBChatMessageHistory } = require('@langchain/mongodb');
 const { summarizeMessages, extractSummaries } = require('./context.js');
-const { Message, ChatSession } = require('@/models');
+const { Message, ChatSession, Workspace, User } = require('@/models');
 const { logger } = require('@/config/logging/logger.js');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { ChatOpenAI, OpenAIEmbeddings } = require('@langchain/openai');
@@ -16,80 +16,11 @@ const initializeOpenAI = (apiKey, chatSession, completionModel) => {
     streaming: true,
     openAIApiKey: apiKey || process.env.OPENAI_API_PROJECT_KEY,
     organization: 'reed_tha_human',
-    functions: tools,
-    // tools: [
-    //   {
-    //     type: 'function',
-    //     function: {
-    //       name: 'summarize_messages',
-    //       description:
-    //         'Summarize a list of chat messages with an overall summary and individual message summaries including their IDs',
-    //       parameters: {
-    //         type: 'object',
-    //         properties: {
-    //           overallSummary: {
-    //             type: 'string',
-    //             description: 'An overall summary of the chat messages',
-    //           },
-    //           individualSummaries: {
-    //             type: 'array',
-    //             items: {
-    //               type: 'object',
-    //               properties: {
-    //                 id: {
-    //                   type: 'string',
-    //                   description: 'The ID of the chat message',
-    //                 },
-    //                 summary: {
-    //                   type: 'string',
-    //                   description: 'A summary of the individual chat message',
-    //                 },
-    //               },
-    //               required: ['id', 'summary'],
-    //             },
-    //           },
-    //         },
-    //         required: ['overallSummary', 'individualSummaries'],
-    //       },
-    //     },
-    //   },
-    //   {
-    //     type: 'function',
-    //     function: {
-    //       name: 'fetchSearchResults',
-    //       description:
-    //         'Fetch search results for a given query using SERP API used to aid in being  PRIVATE INVESTIGATOR',
-    //       parameters: {
-    //         type: 'object',
-    //         properties: {
-    //           query: {
-    //             type: 'string',
-    //             description: 'Query string to search for',
-    //           },
-    //         },
-    //         required: ['query'],
-    //       },
-    //     },
-    //   },
-    // ],
-    // functions: {
-    //   summarize_messages: {
-    //     parameters: {
-    //       type: 'object',
-    //       properties: {
-    //         summary: {
-    //           type: 'string',
-    //           description: 'A concise summary of the chat messages',
-    //         },
-    //       },
-    //       required: ['summary'],
-    //     },
-    //   },
-    // },
+    tools: tools,
     code_interpreter: 'auto',
     function_call: 'auto',
     callbacks: {
-      handleLLMNewToken: token => {
+      handleLLMNewToken: (token) => {
         logger.info(`New token: ${token}`);
       },
       // handleFinalChunk: chunk => {
@@ -104,7 +35,7 @@ const initializePinecone = () => {
   return new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 };
 
-const initializeEmbeddings = apiKey => {
+const initializeEmbeddings = (apiKey) => {
   return new OpenAIEmbeddings({
     modelName: 'text-embedding-3-small',
     apiKey: apiKey || process.env.OPENAI_API_PROJECT_KEY,
@@ -112,13 +43,112 @@ const initializeEmbeddings = apiKey => {
   });
 };
 
-const initializeChatHistory = chatSession => {
+const initializeChatHistory = (chatSession) => {
   return new MongoDBChatMessageHistory({
-    collection: Message.collection,
-    sessionId: chatSession._id,
+    collection: chatSession.collection,
+    sessionId: chatSession._id.toString(),
   });
 };
 
+const initializeChatSession = async (sessionId, workspaceId, userId, prompt, sessionLength) => {
+  try {
+    let chatSession = await ChatSession.findById(sessionId);
+    // if (sessionId & workspaceId & userId) {
+    //   chatSession = await ChatSession.findById({
+    //     _id: sessionId,
+    //   });
+    // }
+
+    if (!chatSession) {
+      logger.info(`[ATTEMPTING SESSION CREATION] WORKSPACE: ${workspaceId} USER: ${userId}`);
+      try {
+        chatSession = new ChatSession({
+          name: `${prompt}-${workspaceId}`,
+          workspaceId: workspaceId,
+          userId: userId,
+          topic: prompt,
+          active: true,
+          model: 'gpt-4-1106-preview',
+          settings: {
+            maxTokens: 3000,
+            temperature: 0.9,
+            topP: 1.0,
+          },
+          messages: [],
+          systemPrompt: null,
+          tools: [],
+          files: [],
+          summary: '',
+          active: true,
+          model: 'gpt-4-1106-preview',
+          topic: prompt,
+          stats: {
+            tokenUsage: 0,
+            messageCount: 0,
+          },
+          settings: {
+            contextCount: 15,
+            maxTokens: 500, // max length of the completion
+            temperature: 0.7,
+            model: 'gpt-4-1106-preview',
+            topP: 1,
+            n: 4,
+            debug: false,
+            summarizeMode: false,
+          },
+          tuning: {
+            debug: false,
+            summary: '',
+            summarizeMode: false,
+          },
+        });
+        await chatSession.save();
+        logger.info(`Session Creation Successful: ${chatSession._id}`);
+        const workspace = await Workspace.findById(workspaceId);
+        if (workspace) {
+          workspace.chatSessions.push(chatSession._id);
+          await workspace.save();
+        } else {
+          throw new Error('Workspace not found');
+        }
+        const user = await User.findById(userId);
+        if (user) {
+          user.chatSessions.push(chatSession._id);
+          await user.save();
+        } else {
+          throw new Error('User not found');
+        }
+      } catch (error) {
+        logger.error(
+          `Error initializing chat session:
+        [message][${error.message}]
+        [error][${error}]
+        [sessionId] ${sessionId}
+        [userId] ${userId},`,
+          error
+        );
+        throw error;
+      }
+    } else {
+      logger.info(`Chat session found: ${chatSession._id}`);
+      const currentPromptHistory = chatSession.promptHistory;
+      chatSession.promptHistory = [...currentPromptHistory, prompt];
+    }
+    // SAVE CLEARED CHAT HISTORY
+    await chatSession.save();
+    return chatSession;
+  } catch (error) {
+    logger.error(
+      `Error initializing chat session:
+      [message][${error.message}]
+      [error][${error}]
+      [sessionId] ${sessionId}
+      [userId] ${userId},`,
+      error
+    );
+    throw error;
+  }
+};
 const handleSummarization = async (messages, chatOpenAI) => {
   try {
     const summary = await summarizeMessages(messages.slice(-5), chatOpenAI);
@@ -132,7 +162,7 @@ const handleSummarization = async (messages, chatOpenAI) => {
       `Error in handleSummarization:
       [message][${error.message}]
       [error][${error}]
-      [sessionId] ${providedSessionId}
+      [sessionId] ${sessionId}
       [userId] ${userId},`,
       error
     );
@@ -154,12 +184,14 @@ const saveMessagesToSession = async (sessionId, messages) => {
     logger.info(`Chat session found: ${chatSession._id}`);
     // logger.info(`MESSAGES: ${JSON.stringify(messages)}`);
     // Extract existing messageIds from the session
-    const existingMessageIds = chatSession?.messages.map(msg => msg.messageId);
+    const existingMessageIds = chatSession?.messages.map((msg) => msg.messageId);
     // Filter out messages that already exist in the session
-    const newMessagesData = messages.filter(message => !existingMessageIds.includes(message.messageId));
+    const newMessagesData = messages.filter(
+      (message) => !existingMessageIds.includes(message.messageId)
+    );
     // Iterate over each new message and create ChatMessage documents
     const newMessages = await Promise.all(
-      newMessagesData.map(async message => {
+      newMessagesData.map(async (message) => {
         const newMessage = new Message({
           sessionId,
           type: message.role || 'message',
@@ -189,7 +221,7 @@ const saveMessagesToSession = async (sessionId, messages) => {
     );
 
     // Add new messages to the chat session
-    chatSession.messages.push(...newMessages.map(msg => msg._id));
+    chatSession.messages.push(...newMessages.map((msg) => msg._id));
     chatSession.stats.messageCount += newMessages.length;
     await chatSession.save();
     console.log(`Total messages in session ${sessionId}: ${chatSession.messages.length}`);
@@ -204,6 +236,7 @@ module.exports = {
   initializePinecone,
   initializeEmbeddings,
   initializeChatHistory,
+  initializeChatSession,
   handleSummarization,
   saveMessagesToSession,
 };

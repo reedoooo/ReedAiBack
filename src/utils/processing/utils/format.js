@@ -1,4 +1,32 @@
+const { ESLint } = require('eslint');
 const prettier = require('prettier');
+
+async function lintAndFormatPrompt(prompt) {
+  // Initialize ESLint
+  const eslint = new ESLint({ fix: true });
+
+  try {
+    // Lint and fix the prompt
+    const results = await eslint.lintText(prompt);
+    const [{ output }] = results;
+
+    // Use output if it exists, otherwise fallback to the original prompt
+    const lintedPrompt = output || prompt;
+
+    // Format with Prettier
+    const formattedPrompt = prettier.format(lintedPrompt, {
+      parser: 'babel',
+      singleQuote: true,
+      trailingComma: 'es5',
+      printWidth: 100,
+    });
+
+    return formattedPrompt; // Return formatted string
+  } catch (error) {
+    console.error('Linting or formatting error:', error);
+    return prompt; // Return the original prompt if any error occurs
+  }
+}
 
 function formatCodeSnippet(code, parser = 'babel') {
   try {
@@ -9,7 +37,7 @@ function formatCodeSnippet(code, parser = 'babel') {
   }
 }
 
-module.exports = { formatCodeSnippet };
+module.exports = { formatCodeSnippet, lintAndFormatPrompt };
 
 // Usage
 // const formattedCode = formatCodeSnippet(`

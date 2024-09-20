@@ -412,8 +412,37 @@ router.delete('/messages/:id', asyncHandler(deleteMessage));
 router.delete('/messages', asyncHandler(deleteMessagesIncludingAndAfter));
 
 // Static file routes
+// Route to get image by name
+router.get('/images/:imageName', (req, res) => {
+  try {
+    const imageName = req.params.imageName;
+    const imagePath = path.join(__dirname, '../../../public/static/images', imageName);
+    res.sendFile(imagePath, err => {
+      if (err) {
+        console.log(`Error fetching image: ${err}`);
+        res.status(404).json({ message: 'Image not found' });
+      }
+    });
+  } catch (error) {
+    logger.error(`Error fetching image: ${error.message}`);
+    res.status(500).json({ error: 'Error fetching image', message: error.message });
+  }
+});
+router.post('/images/:imageName', (req, res) => {
+  const imageName = req.params.imageName;
+  const imagePath = path.join(__dirname, '../../../public/static/images', imageName);
+
+  res.sendFile(imagePath, err => {
+    if (err) {
+      console.log(`Error fetching image: ${err}`);
+      res.status(404).json({ message: 'Image not found' });
+    }
+  });
+});
+
 router.get('/downloads/:filename', asyncHandler(getDownloads));
 router.get('/downloads/custom-prompts', asyncHandler(downloadCustomPrompts));
+// app.use('/static', express.static(path.join(__dirname, 'public/static/images')));
 router.get('/static/list', asyncHandler(getListFiles));
 router.get('/static/:filePath', asyncHandler(getFile));
 router.get('/static/json/all', asyncHandler(getAllStaticJsonFiles));

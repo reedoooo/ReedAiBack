@@ -4,4 +4,5 @@ module.exports = {
   ...require('./initialize'),
   ...require('./handlers'),
   ...require('./combinedChatStream'),
+  ...require('./update'),
 };
